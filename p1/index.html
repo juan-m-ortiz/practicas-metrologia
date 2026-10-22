@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Cazadores de errores del SI</title>
+  <meta name="description" content="Práctica 1 del módulo de Metrología y aseguramiento metrológico: detectar y corregir errores de escritura, redondeo y conversión de unidades.">
+  <meta name="theme-color" content="#0E7490">
+  <script>try{var t=JSON.parse(localStorage.getItem('practicas:tema'));if(t==='claro')document.documentElement.setAttribute('data-theme','light');if(t==='oscuro')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23F59E0B'/%3E%3Cstop offset='1' stop-color='%23F97316'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23g)'/%3E%3Ctext x='16' y='21.5' font-family='Segoe UI,Arial' font-weight='800' font-size='14' text-anchor='middle' fill='white'%3EP1%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="../assets/estilos.css">
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="degradado-anillo" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#10B981"/><stop offset=".55" stop-color="#06B6D4"/><stop offset="1" stop-color="#6366F1"/>
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <header class="barra">
+    <div class="barra-in">
+      <a class="marca" href="../" data-tip="Volver al portal de prácticas">
+        <span class="logo"><i data-icono="buscar"></i></span>
+        <span class="marca-texto"><b>P1 · Cazadores de errores del SI</b><span>Metrología y aseguramiento metrológico</span></span>
+      </a>
+      <div class="acciones-barra">
+        <span class="chip chip-reloj" id="chip-reloj" hidden data-tip="Tiempo transcurrido desde que comenzó">
+          <span class="punto-vivo"></span><span id="reloj">00:00</span>
+        </span>
+        <span class="chip guardado" id="guardado" hidden data-tip="Sus respuestas se guardan automáticamente en este navegador">
+          <i data-icono="nube"></i><span class="txt">Guardado</span>
+        </span>
+        <button type="button" class="btn-icono" id="abrir-apoyo" hidden data-tip="Material de apoyo: reglas, redondeo y factores" aria-label="Material de apoyo"><i data-icono="libro"></i></button>
+        <button type="button" class="btn-icono" id="tema"></button>
+      </div>
+    </div>
+    <div class="progreso-global" id="progreso-global" hidden data-tip="Avance de la práctica"><i></i></div>
+  </header>
+  <div class="demo" id="aviso-demo" hidden><i data-icono="info"></i> Modo demostración: las respuestas no se envían a ningún servidor.</div>
+
+  <main>
+    <!-- Portada y registro --------------------------------------------------- -->
+    <section id="pantalla-inicio" class="envoltura">
+      <section class="hero aparecer">
+        <span class="burbuja b1"></span><span class="burbuja b2"></span><span class="burbuja b3"></span><span class="rejilla-fondo"></span>
+        <span class="hero-etq"><i data-icono="matraz"></i> Sesión 1 · Práctica 1</span>
+        <h1>Cazadores de errores del SI</h1>
+        <p>Detecte y corrija errores de escritura, redondeo y conversión de unidades en un informe de resultados del laboratorio del caso conductor: plomo en agua para consumo humano.</p>
+        <div class="hero-meta">
+          <span><i data-icono="usuario"></i> Trabajo individual</span>
+          <span><i data-icono="medalla"></i> 100 puntos · nota de 0,0 a 5,0</span>
+          <span><i data-icono="libro"></i> Folleto SI · ISO 80000-1 · NIST SP 811 · GUM</span>
+        </div>
+      </section>
+
+      <div class="partes">
+        <div class="tarjeta parte aparecer" data-tono="ambar" style="--i:1">
+          <div class="parte-cab"><span class="ico-tile chico"><i data-icono="buscar"></i></span><span class="pts">45 pts</span></div>
+          <b>A · Informe con errores</b>
+          <span class="suave">Marque los valores mal escritos, cite la regla incumplida y escriba la corrección.</span>
+        </div>
+        <div class="tarjeta parte aparecer" data-tono="violeta" style="--i:2">
+          <div class="parte-cab"><span class="ico-tile chico"><i data-icono="redondeo"></i></span><span class="pts">20 pts</span></div>
+          <b>B · Redondeo</b>
+          <span class="suave">Intervalos de redondeo, empates y cifras según la incertidumbre.</span>
+        </div>
+        <div class="tarjeta parte aparecer" data-tono="cielo" style="--i:3">
+          <div class="parte-cab"><span class="ico-tile chico"><i data-icono="convertir"></i></span><span class="pts">20 pts</span></div>
+          <b>C · Conversión</b>
+          <span class="suave">Unidades no SI con los factores de la NIST SP 811.</span>
+        </div>
+        <div class="tarjeta parte aparecer" data-tono="rosa" style="--i:4">
+          <div class="parte-cab"><span class="ico-tile chico"><i data-icono="mensaje"></i></span><span class="pts">15 pts</span></div>
+          <b>D · Reflexión</b>
+          <span class="suave">El error más riesgoso ante un cliente o un evaluador.</span>
+        </div>
+      </div>
+
+      <div id="estado-practica"></div>
+
+      <div class="columnas-inicio" id="zona-registro">
+        <form class="tarjeta aparecer" id="form-registro" novalidate style="--i:5">
+          <div class="tarjeta-cab">
+            <span class="ico-tile" data-tono="esmeralda"><i data-icono="usuario"></i></span>
+            <div><h2>Regístrese para comenzar</h2><span class="suave peq">Sus valores de redondeo y conversión se calculan a partir de su correo.</span></div>
+          </div>
+
+          <div class="aviso aviso-ok" id="aviso-enviado" hidden><span class="ico"><i data-icono="checkCirculo"></i></span><p id="texto-enviado"></p></div>
+          <div class="aviso aviso-amarillo" id="aviso-borrador" hidden>
+            <span class="ico"><i data-icono="reanudar"></i></span>
+            <div>
+              <p id="texto-borrador"></p>
+              <div class="acciones" style="margin-top:10px">
+                <button type="button" class="btn btn-primario" id="continuar-borrador"><i data-icono="jugar"></i> Continuar donde iba</button>
+                <button type="button" class="btn btn-texto" id="descartar-borrador">Descartar</button>
+              </div>
+            </div>
+          </div>
+
+          <label class="campo"><span class="etq">Nombre completo</span>
+            <span class="control"><span class="ico"><i data-icono="usuario"></i></span><input type="text" id="nombre" autocomplete="name" maxlength="120" placeholder="Como aparece en la lista del curso"></span>
+          </label>
+          <label class="campo"><span class="etq">Correo electrónico</span>
+            <span class="control"><span class="ico"><i data-icono="correo"></i></span><input type="email" id="correo" autocomplete="email" maxlength="254" placeholder="nombre@correo.com"></span>
+          </label>
+          <label class="campo"><span class="etq">Confirme el correo</span>
+            <span class="control"><span class="ico"><i data-icono="correoOk"></i></span><input type="email" id="correo2" autocomplete="off" maxlength="254" placeholder="Escríbalo de nuevo"></span>
+          </label>
+          <label class="interruptor">
+            <input type="checkbox" id="autoriza"><span class="riel"></span>
+            <span>Autorizo el tratamiento de mi nombre, correo y respuestas con fines exclusivamente académicos del diplomado (Ley 1581 de 2012).</span>
+          </label>
+          <div class="aviso aviso-error" id="error-registro" role="alert" hidden><span class="ico"><i data-icono="alerta"></i></span><p></p></div>
+          <div class="acciones">
+            <button type="submit" class="btn btn-primario btn-grande" id="boton-comenzar">Comenzar la práctica <i data-icono="flecha" data-icono-clase="icono-mover"></i></button>
+            <button type="button" class="btn btn-texto" data-ir="consulta"><i data-icono="medalla"></i> Consultar mi nota</button>
+          </div>
+        </form>
+
+        <div class="tarjeta aparecer" style="--i:6">
+          <div class="tarjeta-cab"><span class="ico-tile" data-tono="indigo"><i data-icono="lista"></i></span><h3>Cómo funciona</h3></div>
+          <ol class="lista-pasos">
+            <li><span class="n">1</span><span>Revise el informe y haga clic en cada valor que esté mal escrito. Elija la regla que incumple y escriba la corrección.</span></li>
+            <li><span class="n">2</span><span>Resuelva los ejercicios de redondeo y conversión con sus propios valores.</span></li>
+            <li><span class="n">3</span><span>Escriba su reflexión sobre el error más riesgoso.</span></li>
+            <li><span class="n">4</span><span>Revise su avance y envíe. Guarde el código de consulta que recibirá.</span></li>
+          </ol>
+          <div class="aviso" style="margin-bottom:0"><span class="ico"><i data-icono="nube"></i></span><p>Su avance se guarda solo en este navegador. Si se cierra la página, al volver podrá continuar donde iba.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Taller ---------------------------------------------------------------- -->
+    <section id="pantalla-taller" class="envoltura" hidden>
+      <nav class="pasos" role="tablist" aria-label="Partes de la práctica" id="pasos"></nav>
+
+      <div role="tabpanel" id="panel-A" aria-labelledby="paso-A" class="panel">
+        <div class="rejilla-a">
+          <article class="tarjeta documento" id="informe" aria-label="Informe de resultados con errores"></article>
+          <aside class="lateral">
+            <div class="tarjeta" data-tono="ambar">
+              <div class="tarjeta-cab">
+                <span class="ico-tile chico"><i data-icono="lista"></i></span>
+                <h3>Tabla de errores</h3>
+                <span class="contador-errores" style="margin-left:auto" data-tip="Valores que ha marcado como error"><b id="n-errores">0</b><span class="suave peq">marcados</span></span>
+              </div>
+              <p class="suave peq">El informe tiene <b>alrededor de 15 errores</b>. Cada uno vale 3 puntos (detección, regla y corrección); marcar un valor correcto resta 1 punto.</p>
+              <ul class="lista-errores" id="lista-errores"></ul>
+            </div>
+          </aside>
+        </div>
+      </div>
+
+      <div role="tabpanel" id="panel-B" aria-labelledby="paso-B" class="panel" hidden>
+        <div class="ejercicios" id="ejercicios-B" data-tono="violeta"></div>
+      </div>
+
+      <div role="tabpanel" id="panel-C" aria-labelledby="paso-C" class="panel" hidden>
+        <div class="ejercicios" id="ejercicios-C" data-tono="cielo"></div>
+      </div>
+
+      <div role="tabpanel" id="panel-D" aria-labelledby="paso-D" class="panel" hidden>
+        <div class="tarjeta" data-tono="rosa">
+          <div class="tarjeta-cab">
+            <span class="ico-tile"><i data-icono="mensaje"></i></span>
+            <div><h2>Parte D · Reflexión</h2><span class="suave peq">La califica el docente</span></div>
+            <span class="pts">15 pts</span>
+          </div>
+          <label class="campo" for="reflexion"><span class="etq">Elija uno de los errores que encontró en el informe. ¿Qué impacto tendría ante el cliente o en una evaluación de ONAC, y por qué lo considera el más riesgoso?</span></label>
+          <textarea id="reflexion" maxlength="1500" placeholder="Escriba su análisis en 5 a 10 líneas…"></textarea>
+          <div class="contador-texto">
+            <span class="medidor" data-tip="Se recomiendan al menos 150 caracteres"><i id="medidor-reflexion"></i></span>
+            <span><b id="contador-reflexion" class="num">0</b> / 1500 caracteres</span>
+          </div>
+        </div>
+      </div>
+
+      <div role="tabpanel" id="panel-R" aria-labelledby="paso-R" class="panel" hidden>
+        <div class="tarjeta" data-tono="esmeralda">
+          <div class="tarjeta-cab"><span class="ico-tile"><i data-icono="enviar"></i></span><h2>Revisar y enviar</h2></div>
+          <div class="revision">
+            <div class="anillo" data-tip="Avance estimado de la práctica">
+              <svg viewBox="0 0 200 200"><circle class="pista" cx="100" cy="100" r="86"/><circle class="arco" id="arco-avance" cx="100" cy="100" r="86" stroke-dasharray="540.35" stroke-dashoffset="540.35"/></svg>
+              <div class="centro"><div><b id="porcentaje-avance">0 %</b><span>avance</span></div></div>
+            </div>
+            <ul class="checklist" id="lista-revision"></ul>
+          </div>
+          <label class="interruptor" style="margin-top:22px">
+            <input type="checkbox" id="declaracion"><span class="riel"></span>
+            <span>Declaro que desarrollé esta práctica de forma individual.</span>
+          </label>
+          <p class="suave peq">Solo se acepta un envío por correo. Después de enviar no podrá modificar sus respuestas.</p>
+          <div class="aviso aviso-error" id="error-envio" role="alert" hidden><span class="ico"><i data-icono="alerta"></i></span><p></p></div>
+          <div class="acciones">
+            <button type="button" class="btn btn-primario btn-grande" id="boton-enviar" disabled><i data-icono="enviar"></i> Enviar la práctica</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Envío exitoso ------------------------------------------------------------ -->
+    <section id="pantalla-enviado" class="envoltura angosta" hidden>
+      <div class="tarjeta exito">
+        <svg class="check-animado" viewBox="0 0 104 104" aria-hidden="true"><circle cx="52" cy="52" r="46"/><path d="M32 54 46 67 73 38"/></svg>
+        <h1>¡Práctica enviada!</h1>
+        <p class="suave">Sus respuestas quedaron registradas. Guarde este código de consulta: lo necesitará con su correo para ver su nota cuando el docente la publique.</p>
+        <div class="codigo" id="codigo-enviado"></div>
+        <div class="acciones" style="justify-content:center">
+          <button type="button" class="btn" id="copiar-codigo" data-tip="Copiar el código al portapapeles"><i data-icono="copiar"></i> Copiar el código</button>
+          <button type="button" class="btn btn-texto" data-ir="consulta"><i data-icono="medalla"></i> Consultar mi nota</button>
+          <a class="btn btn-texto" href="../"><i data-icono="casa"></i> Ir al portal</a>
+        </div>
+      </div>
+      <div id="resultado-envio"></div>
+    </section>
+
+    <!-- Consulta de resultados --------------------------------------------- -->
+    <section id="pantalla-consulta" class="envoltura angosta" hidden>
+      <form class="tarjeta aparecer" id="form-consulta" novalidate>
+        <div class="tarjeta-cab">
+          <span class="ico-tile" data-tono="indigo"><i data-icono="medalla"></i></span>
+          <div><h2>Consultar mi nota</h2><span class="suave peq">Disponible cuando el docente habilite la consulta.</span></div>
+        </div>
+        <label class="campo"><span class="etq">Correo con el que envió</span>
+          <span class="control"><span class="ico"><i data-icono="correo"></i></span><input type="email" id="consulta-correo" autocomplete="email" maxlength="254"></span>
+        </label>
+        <label class="campo"><span class="etq">Código de consulta</span>
+          <span class="control"><span class="ico"><i data-icono="llave"></i></span><input type="text" id="consulta-codigo" autocomplete="off" maxlength="6" style="text-transform:uppercase;letter-spacing:.2em;font-weight:700"></span>
+        </label>
+        <div class="aviso aviso-error" id="error-consulta" role="alert" hidden><span class="ico"><i data-icono="alerta"></i></span><p></p></div>
+        <div class="acciones">
+          <button type="submit" class="btn btn-primario" id="boton-consultar"><i data-icono="ojo"></i> Consultar</button>
+          <button type="button" class="btn btn-texto" data-ir="inicio"><i data-icono="flechaIzq"></i> Volver</button>
+        </div>
+      </form>
+      <div id="resultado-consulta"></div>
+    </section>
+  </main>
+
+  <!-- Material de apoyo -->
+  <aside class="cajon" id="cajon" aria-label="Material de apoyo" aria-hidden="true">
+    <div class="cajon-cab">
+      <span class="ico-tile chico" data-tono="esmeralda"><i data-icono="libro"></i></span>
+      <h2>Material de apoyo</h2>
+      <button type="button" class="btn-icono" id="cerrar-apoyo" data-tip="Cerrar" aria-label="Cerrar"><i data-icono="x"></i></button>
+    </div>
+    <h3><i data-icono="regla"></i> Reglas de escritura</h3>
+    <div class="reglas-apoyo" id="apoyo-reglas"></div>
+    <h3><i data-icono="redondeo"></i> Redondeo</h3>
+    <div class="tips-redondeo">
+      <div><b>Intervalo de redondeo.</b> Se reemplaza el número por el múltiplo entero más cercano del intervalo (ISO 80000-1, anexo B).</div>
+      <div><b>Empates.</b> Regla A (preferente): se elige el número par. Regla B: el de mayor magnitud.</div>
+      <div><b>Una sola etapa.</b> Se redondea directamente desde el valor original, nunca por pasos.</div>
+      <div><b>Con incertidumbre.</b> U con dos cifras significativas; el resultado a la misma posición decimal (GUM 7.2.6).</div>
+    </div>
+    <h3><i data-icono="convertir"></i> Factores de conversión (NIST SP 811)</h3>
+    <table class="tabla-mini">
+      <tr><td>1 in</td><td>25,4 mm (exacto)</td></tr>
+      <tr><td>1 lb</td><td>0,453 592 37 kg (exacto)</td></tr>
+      <tr><td>1 psi</td><td>6,894 757 kPa</td></tr>
+      <tr><td>1 bar</td><td>100 kPa (exacto)</td></tr>
+      <tr><td>1 mmHg</td><td>133,322 4 Pa</td></tr>
+      <tr><td>1 cal (termoquímica)</td><td>4,184 J (exacto)</td></tr>
+      <tr><td>1 gal (EE. UU.)</td><td>3,785 412 L</td></tr>
+      <tr><td>t/°F → t/°C</td><td>(t/°F − 32)/1,8</td></tr>
+    </table>
+  </aside>
+  <div class="cajon-fondo" id="cajon-fondo"></div>
+
+  <!-- Editor de un valor del informe -->
+  <dialog class="modal" id="editor" aria-labelledby="editor-titulo">
+    <form method="dialog" id="form-editor">
+      <div class="modal-cab">
+        <span class="ico-tile chico" data-tono="ambar"><i data-icono="buscar"></i></span>
+        <h3 id="editor-titulo"></h3>
+        <button type="submit" value="cancelar" class="btn-icono" formnovalidate data-tip="Cerrar sin cambios" aria-label="Cerrar"><i data-icono="x"></i></button>
+      </div>
+      <div class="modal-cuerpo">
+        <div class="original"><i data-icono="alerta"></i><span id="editor-original"></span></div>
+        <span class="campo" style="margin-bottom:8px"><span class="etq">¿Qué regla incumple?</span></span>
+        <div class="reglas-grid" id="editor-reglas" role="radiogroup" aria-label="Regla que incumple"></div>
+        <label class="campo" style="margin-bottom:0"><span class="etq">Versión corregida (valor y unidad)</span>
+          <span class="control"><span class="ico"><i data-icono="lapiz"></i></span><input type="text" id="editor-correccion" maxlength="120" autocomplete="off" spellcheck="false" placeholder="Ej.: 25 °C"></span>
+        </label>
+        <div id="editor-simbolos"></div>
+        <div class="aviso aviso-error" id="error-editor" role="alert" hidden><span class="ico"><i data-icono="alerta"></i></span><p></p></div>
+      </div>
+      <div class="modal-pie">
+        <button type="submit" value="quitar" class="btn btn-peligro" id="editor-quitar"><i data-icono="papelera"></i> Quitar la marca</button>
+        <button type="submit" value="cancelar" class="btn" formnovalidate>Cancelar</button>
+        <button type="submit" value="guardar" class="btn btn-primario" id="editor-guardar"><i data-icono="check"></i> <span>Marcar como error</span></button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Confirmación de envío -->
+  <dialog class="modal" id="confirmar-envio" aria-labelledby="confirmar-titulo">
+    <form method="dialog">
+      <div class="modal-cab"><span class="ico-tile chico" data-tono="esmeralda"><i data-icono="enviar"></i></span><h3 id="confirmar-titulo">¿Enviar la práctica ahora?</h3></div>
+      <div class="modal-cuerpo"><p id="confirmar-texto"></p></div>
+      <div class="modal-pie">
+        <button type="submit" value="no" class="btn">Seguir revisando</button>
+        <button type="submit" value="si" class="btn btn-primario"><i data-icono="enviar"></i> Sí, enviar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <footer class="pie">
+    <span>UIS · Escuela de Química · Diplomado Acreditación de Laboratorios ISO/IEC 17025:2017 · 2026-2</span>
+    <span>Informe ficticio con fines didácticos</span>
+  </footer>
+
+  <script src="../config.js"></script>
+  <script src="../assets/iconos.js"></script>
+  <script src="../assets/comun.js"></script>
+  <script src="practica1.js"></script>
+</body>
+</html>
