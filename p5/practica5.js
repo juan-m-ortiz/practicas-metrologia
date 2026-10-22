@@ -79,7 +79,7 @@
       { id: 'C', titulo: 'Bare', nombre: 'C · Algoritmo de Bare', icono: 'rayo', tono: 'violeta', pts: 20, resumen: 'NI = CI · (0,8·X + 0,2·Y + 0,1·Z).' },
       { id: 'D', titulo: 'Decisión', nombre: 'D · Intervalo final', icono: 'calendario', tono: 'rosa', pts: 20, resumen: 'Intervalo por equipo y justificación técnica.' }
     ],
-    varianteDemo: { anios: ['2024', '2025', '2026'], equipos: [
+    varianteDemo: { anios: (function () { var y = Number(C.fechaRelativa(-120).slice(0, 4)); return [String(y - 2), String(y - 1), String(y)]; })(), equipos: [
       { clave: 'termometro', nombre: 'Termómetro de incubadora T-01', icono: 'termometro', unidad: '°C', dec: 2, emp: '0,50', banda: '0,40', errores: ['+0,25', '−0,15', '−0,35'] },
       { clave: 'balanza', nombre: 'Balanza analítica B-02', icono: 'medalla', unidad: 'mg', dec: 2, emp: '1,00', banda: '0,80', errores: ['−0,05', '−0,91', '+2,30'] },
       { clave: 'micropipeta', nombre: 'Micropipeta de 100 µL M-07', icono: 'vaso', unidad: 'µL', dec: 2, emp: '0,80', banda: '0,64', errores: ['+0,31', '+0,52', '+0,73'] },
@@ -116,7 +116,7 @@
       C: function (panel, h) {
         var v = h.estado.variante;
         var cont = crear('div', { clase: 'ejercicios', 'data-tono': 'violeta' });
-        cont.appendChild(h.encabezado('C', 'NI = 12 · (0,8·X + 0,2·Y + 0,1·Z). X: última (2026), Y: penúltima (2025), Z: antepenúltima (2024). Multiplicadores: A 1,0 · B 0,8 · C 0,6 · D 0,4 · E 0,3.'));
+        cont.appendChild(h.encabezado('C', 'NI = 12 · (0,8·X + 0,2·Y + 0,1·Z). X: última (' + v.anios[2] + '), Y: penúltima (' + v.anios[1] + '), Z: antepenúltima (' + v.anios[0] + '). Multiplicadores: A 1,0 · B 0,8 · C 0,6 · D 0,4 · E 0,3.'));
         v.equipos.forEach(function (e, i) {
           cont.appendChild(h.ejercicio('rayo', 'Equipo ' + (i + 1) + ' · ' + e.nombre, 4,
             ['Use los estados que asignó en la parte A. Redondee al mes entero y limite entre 3 y 24 meses.'],
@@ -169,7 +169,7 @@
         '<tr><td>A · dentro de la banda</td><td>1,0</td></tr><tr><td>B · fuera de la banda, dentro del EMP</td><td>0,8</td></tr>' +
         '<tr><td>C · 1× a 2× EMP</td><td>0,6</td></tr><tr><td>D · 2× a 4× EMP</td><td>0,4</td></tr><tr><td>E · 4× a 6× EMP</td><td>0,3</td></tr>' }));
       cont.appendChild(crear('h3', null, [C.icono('calendario'), 'Ejemplo (diapositiva 55)']));
-      cont.appendChild(crear('div', { clase: 'tips-redondeo', html: '<div>T-02: A (2024), B (2025), D (2026). NI = 12 · (0,8·0,4 + 0,2·0,8 + 0,1·1,0) = 6,96 ≈ 7 meses.</div>' +
+      cont.appendChild(crear('div', { clase: 'tips-redondeo', html: '<div>T-02: A (antepenúltima), B (penúltima), D (última). NI = 12 · (0,8·0,4 + 0,2·0,8 + 0,1·1,0) = 6,96 ≈ 7 meses.</div>' +
         '<div>Redondeo al mes entero; en empates, al par (regla A de ISO 80000-1): 3,5 → 4 y 6,5 → 6.</div>' }));
     }
   });

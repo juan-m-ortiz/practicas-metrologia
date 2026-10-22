@@ -72,6 +72,7 @@
         if (!r.ok) throw new Error('HTTP ' + r.status);
         var j = await r.json();
         if (j.codigo === 'OCUPADO' || j.codigo === 'SERVIDOR') throw new Error(j.mensaje);
+        if (j.edicion) fijarEdicion(j.edicion);
         return j;
       } catch (e) {
         if (intento >= reintentos) {
@@ -97,6 +98,47 @@
       try { localStorage.removeItem(clave); } catch (e) { /* sin almacenamiento */ }
     }
   };
+
+  // ---------------------------------------------------------------------------
+  // Edición del curso: semestre y fecha de referencia de los ejercicios. La fija el
+  // docente en la pestaña Config de la hoja y llega con las respuestas del servidor;
+  // mientras tanto se usa la última conocida o la fecha de hoy.
+  // ---------------------------------------------------------------------------
+
+  function textoFecha(d) {
+    return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+  }
+
+  function edicionDeHoy() {
+    var hoy = new Date();
+    return { etiqueta: hoy.getFullYear() + '-' + (hoy.getMonth() < 6 ? 1 : 2), fecha: textoFecha(hoy) };
+  }
+
+  function edicionValida(e) {
+    return e && typeof e.etiqueta === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(e.fecha || '');
+  }
+
+  var edicionActual = edicionValida(almacen.leer('practicas:edicion')) ? almacen.leer('practicas:edicion') : edicionDeHoy();
+
+  function edicion() { return edicionActual; }
+
+  function pintarEdicion() {
+    document.querySelectorAll('[data-edicion]').forEach(function (n) { n.textContent = edicionActual.etiqueta; });
+  }
+
+  function fijarEdicion(e) {
+    if (!edicionValida(e)) return;
+    edicionActual = { etiqueta: e.etiqueta.slice(0, 20), fecha: e.fecha };
+    almacen.guardar('practicas:edicion', edicionActual);
+    pintarEdicion();
+  }
+
+  /** Fecha aaaa-mm-dd desplazada `dias` respecto a `base` (por defecto, la fecha de la edición). */
+  function fechaRelativa(dias, base) {
+    var d = new Date((base || edicionActual.fecha) + 'T12:00:00');
+    d.setDate(d.getDate() + dias);
+    return textoFecha(d);
+  }
 
   function uuid() {
     if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
@@ -354,6 +396,11 @@
     iniciarReloj: iniciarReloj,
     barraSimbolos: barraSimbolos,
     recordarFoco: recordarFoco,
-    fecha: fecha
+    fecha: fecha,
+    edicion: edicion,
+    fijarEdicion: fijarEdicion,
+    pintarEdicion: pintarEdicion,
+    fechaRelativa: fechaRelativa
   };
+  pintarEdicion();
 })();

@@ -150,7 +150,7 @@
       certificado: { numero: 'MI-2826-77', laboratorio: 'Metrología Integral S. A. S.', codigo: '16-LAC-042', marca: true,
         trazabilidad: 'Los resultados son trazables al Sistema Internacional de Unidades (SI) mediante patrones calibrados por institutos nacionales de metrología y laboratorios acreditados.',
         cliente: 'Laboratorio de Aguas del Oriente (ficticio)', instrumento: 'Termómetro digital', fabricante: 'TermoLab', modelo: 'TD-210', serie: 'SN-237523',
-        recepcion: '2026-08-12', calibracion: '2026-08-15', emision: '2026-08-21', metodo: '', condiciones: '', unidad: '°C', columnas: 2, k: 2,
+        recepcion: C.fechaRelativa(-71), calibracion: C.fechaRelativa(-68), emision: C.fechaRelativa(-62), metodo: '', condiciones: '', unidad: '°C', columnas: 2, k: 2,
         puntos: [{ punto: '30,0 °C', error: '+0,05', U: '0,69', errorFound: '+0,01' }, { punto: '37,0 °C', error: '+0,16', U: '0,77', errorFound: '+0,86' },
           { punto: '45,0 °C', error: '−0,12', U: '0,88', errorFound: '−0,11' }],
         conformidad: '', notas: ['El sensor se sumergió 10 cm y se dejó estabilizar 10 min en cada punto.', 'Se realizó ajuste del instrumento durante el servicio.',
@@ -158,7 +158,7 @@
       alcance: { laboratorio: 'Metrología Integral S. A. S.', codigo: '16-LAC-042', servicio: 'Termómetros de indicación digital, por comparación',
         intervalo: '−30 °C a 150 °C', cmc: '0,05 °C', estado: 'Vigente' },
       hojaVida: { codigo: 'TD-INC-02', instrumento: 'Termómetro digital', fabricante: 'TermoLab', modelo: 'TD-210', serie: 'SN-237523',
-        ubicacion: 'Incubadora de cultivos INC-02', uso: '30 °C a 40 °C', puntoUso: '37,0 °C', emp: '±0,50 °C', corregible: true, programa: '12 meses', revision: '2026-10-22' },
+        ubicacion: 'Incubadora de cultivos INC-02', uso: '30 °C a 40 °C', puntoUso: '37,0 °C', emp: '±0,50 °C', corregible: true, programa: '12 meses', revision: C.fechaRelativa(0) },
       textoB1: 'En la incubadora, el termómetro indica 37,1 °C. ¿Cuál es la temperatura corregida?', unidadB1: '°C'
     },
     respuestasVacias: function () { return { A: {}, B: {}, C: {}, D: {} }; },

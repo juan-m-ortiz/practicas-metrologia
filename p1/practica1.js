@@ -95,12 +95,13 @@
   }
 
   function pintarInforme() {
+    var ed = ctx.estado.edicion || C.edicion();   // fecha de referencia de la edición del curso
     informe.textContent = '';
     informe.appendChild(crear('div', { clase: 'doc-cab' }, [
       crear('div', { clase: 'doc-titulo' }, [
         crear('span', { clase: 'ico-tile', 'data-tono': 'esmeralda' }, [C.icono('matraz')]),
-        crear('div', null, [crear('h2', { texto: 'Informe de resultados N.º IR-2026-0815' }),
-          crear('p', { texto: 'Laboratorio de aguas · Cliente: Acueducto municipal · Emitido el 2026-10-20' })])
+        crear('div', null, [crear('h2', { texto: 'Informe de resultados N.º IR-' + ed.fecha.slice(0, 4) + '-0815' }),
+          crear('p', { texto: 'Laboratorio de aguas · Cliente: Acueducto municipal · Emitido el ' + C.fechaRelativa(-2, ed.fecha) })])
       ]),
       crear('span', { clase: 'sello' }, [C.icono('alerta'), 'Documento ficticio'])
     ]));

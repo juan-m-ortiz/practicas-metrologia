@@ -111,7 +111,7 @@
         '<div class="modal-cuerpo"><p id="confirmar-texto"></p></div>' +
         '<div class="modal-pie"><button type="submit" value="no" class="btn">Seguir revisando</button><button type="submit" value="si" class="btn btn-primario">' + ico('enviar') + ' Sí, enviar</button></div>' +
       '</form></dialog>' +
-      '<footer class="pie"><span>UIS · Escuela de Química · Diplomado Acreditación de Laboratorios ISO/IEC 17025:2017 · 2026-2</span><span>' + esc(def.pie || 'Datos ficticios con fines didácticos') + '</span></footer>';
+      '<footer class="pie"><span>UIS · Escuela de Química · Diplomado Acreditación de Laboratorios ISO/IEC 17025:2017 · <span data-edicion>' + esc(C.edicion().etiqueta) + '</span></span><span>' + esc(def.pie || 'Datos ficticios con fines didácticos') + '</span></footer>';
 
     function campoRegistro(etq, id, tipo, icono, auto, ph, max) {
       return '<label class="campo"><span class="etq">' + esc(etq) + '</span><span class="control"><span class="ico">' + ico(icono) + '</span>' +
@@ -371,6 +371,7 @@
       var mismo = previo && previo.correo === r.correo;
       estado = {
         nombre: r.nombre, correo: r.correo, inicio: mismo ? previo.inicio : r.inicio, variante: r.variante,
+        edicion: mismo && previo.edicion ? previo.edicion : (r.edicion || C.edicion()),
         idCliente: mismo ? previo.idCliente : C.uuid(),
         respuestas: mismo ? previo.respuestas : def.respuestasVacias(), pestana: PASOS[0].id
       };
