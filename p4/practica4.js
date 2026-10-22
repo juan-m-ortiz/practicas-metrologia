@@ -17,6 +17,11 @@
     ['D5', 'Antes de volver a usarlo', [['mismo', 'Basta con el certificado actual'], ['reconfirmar', 'Recalibrar y repetir la confirmación metrológica'], ['limpiar', 'Basta con limpiarlo']]]
   ];
 
+  function num(t) { return Number(String(t).replace(/[±+\s ]/g, '').replace('−', '-').replace(',', '.')); }
+
+  /** TUR = EMP / U, con dos decimales. */
+  function tur(e) { return (num(e.emp) / num(e.U)).toFixed(2).replace('.', ','); }
+
   function chips(e) {
     return crear('div', { clase: 'ficha-equipo' }, [
       crear('div', null, [crear('small', { texto: 'Uso previsto' }), crear('span', { texto: e.uso })]),
@@ -84,16 +89,18 @@
           cont.appendChild(h.ejercicio(e.icono, 'Equipo ' + (i + 1) + ' · ' + e.nombre, 6,
             ['EMP ', h.dato(e.emp + ' ' + e.unidad), ' · E = ', h.dato(e.E + ' ' + e.unidad), ' · U = ', h.dato(e.U + ' ' + e.unidad),
               ' · ', e.corregible ? 'admite corregir lecturas' : 'no admite corregir lecturas'],
-            [h.seleccion('B', 'B' + (i + 1), 'Decisión', DECISIONES, { columnas: 3 })], i + 1));
+            [h.recuadro(null, function (r) { return [['Su |E| + U (parte A)', r.A['A' + (i + 1)] ? r.A['A' + (i + 1)] + ' ' + e.unidad : '']]; }, { nota: 'Solo lectura' }),
+              h.seleccion('B', 'B' + (i + 1), 'Decisión', DECISIONES, { columnas: 3 })], i + 1));
         });
         panel.appendChild(cont);
       },
       C: function (panel, h) {
         var v = h.estado.variante;
         var cont = crear('div', { clase: 'ejercicios', 'data-tono': 'violeta' });
-        cont.appendChild(h.encabezado('C', 'TUR = EMP / U. Práctica común: 4:1 (ANSI/NCSL Z540.3); 3:1 como mínimo razonable; por debajo, use banda de guarda.'));
+        cont.appendChild(h.encabezado('C', 'TUR = EMP / U, calculada por la página. Práctica común: 4:1 (ANSI/NCSL Z540.3); 3:1 como mínimo razonable; por debajo, use banda de guarda.'));
         v.equipos.forEach(function (e, i) {
-          cont.appendChild(h.ejercicio('manometro', 'Equipo ' + (i + 1) + ' · ' + e.nombre, 4, ['EMP ', h.dato(e.emp + ' ' + e.unidad), ' · U = ', h.dato(e.U + ' ' + e.unidad)],
+          cont.appendChild(h.ejercicio('manometro', 'Equipo ' + (i + 1) + ' · ' + e.nombre, 4, ['EMP ', h.dato(e.emp + ' ' + e.unidad), ' · U = ', h.dato(e.U + ' ' + e.unidad),
+            ' · TUR = ', h.dato(e.emp.replace(/^±/, '') + ' / ' + e.U + ' = ' + tur(e) + ' : 1')],
             [h.seleccion('C', 'C' + (i + 1), 'Relación tolerancia/incertidumbre', TUR, { columnas: 3 })], i + 1));
         });
         panel.appendChild(cont);
@@ -102,6 +109,9 @@
         var v = h.estado.variante;
         var cont = crear('div', { clase: 'ejercicios', 'data-tono': 'rosa' });
         cont.appendChild(h.encabezado('D', 'Registro para la hoja de vida (6.4.13) del equipo que resultó no apto. Si hay más de uno, elija cualquiera.'));
+        cont.appendChild(h.recuadro('Sus decisiones de la parte B', function (r) {
+          return v.equipos.map(function (e, i) { return ['Equipo ' + (i + 1) + ' · ' + e.nombre, h.textoOpcion(DECISIONES, r.B['B' + (i + 1)])]; });
+        }));
         var hoja = crear('div', { clase: 'tarjeta hoja-vida aparecer', style: '--i:1' }, [
           crear('div', { clase: 'hoja-vida-cab' }, [C.icono('documento'), crear('b', { texto: 'HOJA DE VIDA · REGISTRO DE CONFIRMACIÓN METROLÓGICA' }), crear('span', { texto: 'Laboratorio de aguas (ficticio)' })]),
           h.seleccion('D', 'D1', 'D1 · Equipo', v.equipos.map(function (e, i) { return [e.clave, 'Equipo ' + (i + 1) + ' · ' + e.nombre]; }), { columnas: 1 })

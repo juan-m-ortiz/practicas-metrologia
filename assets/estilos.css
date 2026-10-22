@@ -609,15 +609,17 @@ a.practica:hover .practica-ir .icono { transform: translateX(4px); }
 .datos-grafico { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 18px; align-items: center; }
 @media (max-width: 760px) { .datos-grafico { grid-template-columns: 1fr; } }
 .calculadora .btn { margin: 4px 0 14px; }
-.calc-salida { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; opacity: .35; filter: blur(3px); transition: opacity .4s, filter .4s; pointer-events: none; }
+.calc-salida { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; opacity: .35; filter: blur(3px); transition: opacity .4s, filter .4s; pointer-events: none; }
 .calc-salida.visible { opacity: 1; filter: none; pointer-events: auto; }
 .calc-salida.visible > div { animation: pop .45s var(--curva) both; }
 .calc-salida.visible > div:nth-child(2) { animation-delay: .08s; }
 .calc-salida.visible > div:nth-child(3) { animation-delay: .16s; }
+.calc-salida.visible > div:nth-child(4) { animation-delay: .24s; }
+.calc-salida.visible > div:nth-child(5) { animation-delay: .32s; }
 .calc-salida > div { padding: 14px; border-radius: 14px; background: color-mix(in srgb, var(--c, #10B981) 10%, var(--superficie-2)); }
 .calc-salida small { display: block; font-size: .8rem; font-weight: 700; color: var(--suave); }
 .calc-salida b { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
-@media (max-width: 560px) { .calc-salida { grid-template-columns: 1fr; } }
+@media (max-width: 380px) { .calc-salida { grid-template-columns: 1fr; } }
 .rejilla-dianas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
 @media (min-width: 1300px) { .rejilla-dianas { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 @media (max-width: 640px) { .rejilla-dianas { grid-template-columns: 1fr; } }
@@ -703,6 +705,28 @@ svg.diana .impacto { transform-box: fill-box; transform-origin: center; animatio
 .hoja-vida-cab .icono { width: 26px; height: 26px; color: #EC4899; }
 .hoja-vida-cab b { font-size: .86rem; letter-spacing: .04em; }
 .hoja-vida-cab span { font-size: .82rem; color: var(--suave); }
+
+/* Recuadro «Sus respuestas» (solo lectura) y salidas de calculadoras guiadas */
+.recuadro-respuestas {
+  margin: 10px 0; padding: 12px 14px; border-radius: 14px; font-size: .9rem;
+  background: color-mix(in srgb, var(--c, #6366F1) 7%, var(--superficie)); border: 1.5px dashed color-mix(in srgb, var(--c, #6366F1) 40%, transparent);
+}
+.recuadro-cab { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-bottom: 6px; }
+.recuadro-cab .icono { width: 17px; height: 17px; color: var(--c, #6366F1); }
+.recuadro-cab b { font-size: .86rem; }
+.recuadro-cab span { font-size: .76rem; color: var(--suave); }
+.recuadro-lista { display: grid; grid-template-columns: minmax(0, max-content) minmax(0, 1fr); gap: 4px 14px; margin: 0; }
+.recuadro-lista dt { color: var(--suave); }
+.recuadro-lista dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.recuadro-lista dd.vacio { font-weight: 400; font-style: italic; color: var(--suave); }
+@media (max-width: 560px) { .recuadro-lista { grid-template-columns: 1fr; gap: 0; } .recuadro-lista dd { margin-bottom: 6px; } }
+.guia-calculo {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 6px 0 2px; padding: 8px 12px; border-radius: 12px;
+  background: var(--superficie-2); font-size: .88rem; font-variant-numeric: tabular-nums;
+}
+.guia-calculo .icono { width: 16px; height: 16px; color: var(--c, #6366F1); flex: none; }
+.guia-calculo b { font-weight: 700; }
+.guia-calculo.pendiente { color: var(--suave); font-style: italic; }
 
 /* P7: certificado de calibración y lista de chequeo */
 @media (min-width: 1181px) { .rejilla-cert { grid-template-columns: minmax(0, 1.25fr) minmax(320px, 1fr); } }

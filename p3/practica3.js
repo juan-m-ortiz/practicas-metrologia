@@ -239,6 +239,15 @@
       D: function (panel, h) {
         var cont = crear('div', { clase: 'ejercicios', 'data-tono': 'rosa' });
         cont.appendChild(h.encabezado('D', 'Con todo lo anterior, emita su dictamen de auditor.'));
+        var v = h.estado.variante;
+        cont.appendChild(h.recuadro('Sus respuestas de las partes B y C', function (r) {
+          return v.evidencias.map(function (e, i) {
+            var via = r.B['B' + (i + 1)], hallazgo = r.C['C' + (i + 1)];
+            var textoVia = !via ? '—' : (via === 'no' ? 'no demuestra trazabilidad' : via);
+            var textoHallazgo = hallazgo ? h.textoOpcion(HALLAZGOS, hallazgo).split(' (')[0] : '—';
+            return [e.id + ' · ' + e.titulo, (via || hallazgo) ? 'Vía: ' + textoVia + ' · Hallazgo: ' + textoHallazgo : ''];
+          });
+        }));
         DICTAMEN.forEach(function (d, i) {
           cont.appendChild(h.ejercicio(['medalla', 'lista', 'rayo'][i], d[0], 5, [d[1]], [h.seleccion('D', d[0], 'Su respuesta', d[2], { columnas: 1 })], i + 1));
         });

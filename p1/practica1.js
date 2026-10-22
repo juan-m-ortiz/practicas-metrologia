@@ -339,6 +339,12 @@
           crear('div', { clase: 'tarjeta-cab' }, [crear('span', { clase: 'ico-tile' }, [C.icono('mensaje')]),
             crear('div', null, [crear('h2', { texto: 'Parte D · Reflexión' }), crear('span', { clase: 'suave peq', texto: 'La califica el docente' })]),
             crear('span', { clase: 'pts', texto: '15 pts' })]),
+          h.recuadro('Los errores que marcó en la parte A', function (r) {
+            return ORDEN_A.filter(function (id) { return r.A[id]; }).map(function (id) {
+              var m = r.A[id];
+              return [ETIQUETAS[id] + ' · «' + VALORES[id] + '»', (m.correccion ? '→ ' + m.correccion : 'sin corrección') + (m.regla ? ' · ' + m.regla : '')];
+            });
+          }, { vacio: 'Aún no ha marcado errores en el informe de la parte A.' }),
           h.texto('D', 'reflexion', 'Elija uno de los errores que encontró en el informe. ¿Qué impacto tendría ante el cliente o en una evaluación de ONAC, y por qué lo considera el más riesgoso?',
             { placeholder: 'Escriba su análisis en 5 a 10 líneas…' })
         ]));

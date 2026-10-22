@@ -10,7 +10,26 @@
   var ESTADOS = [['A', 'A'], ['B', 'B'], ['C', 'C'], ['D', 'D'], ['E', 'E']];
   var TIPS = { A: 'A · dentro de la banda (≤ 0,8·EMP)', B: 'B · fuera de la banda, dentro del EMP', C: 'C · entre 1 y 2 veces el EMP', D: 'D · entre 2 y 4 veces el EMP', E: 'E · entre 4 y 6 veces el EMP' };
 
+  var FACTOR = { A: 1.25, B: 0.75, C: 0.5, D: 0.5, E: 0.5 };
+  var MULT = { A: 1.0, B: 0.8, C: 0.6, D: 0.4, E: 0.3 };
+
   function num(t) { return Number(String(t).replace(/[+\s]/g, '').replace('−', '-').replace(',', '.')); }
+  function coma(x, d) { return x.toFixed(d).replace('.', ','); }
+  function comaCorta(x) { return String(Math.round(x * 100) / 100).replace('.', ','); }
+
+  /** Línea de cálculo guiado: se repinta con cada cambio de respuesta. */
+  function guia(h, calcular) {
+    var nodo = crear('div', { clase: 'guia-calculo' });
+    h.observar(function (r) {
+      var res = calcular(r);
+      nodo.textContent = '';
+      nodo.classList.toggle('pendiente', !!res.pendiente);
+      nodo.appendChild(C.icono(res.pendiente ? 'info' : 'rayo'));
+      (res.partes || [res.pendiente]).forEach(function (p) { nodo.appendChild(typeof p === 'string' ? document.createTextNode(p) : p); });
+    });
+    return nodo;
+  }
+
   function svg(tag, attrs, texto) {
     var n = document.createElementNS(NS, tag);
     Object.keys(attrs || {}).forEach(function (k) { n.setAttribute(k, attrs[k]); });
@@ -37,6 +56,11 @@
     });
     g.appendChild(svg('line', { x1: L, x2: W - R + 4, y1: Y(banda), y2: Y(banda), stroke: '#F59E0B', 'stroke-width': 2, 'stroke-dasharray': '5 4' }));
     g.appendChild(svg('text', { x: W - R + 8, y: Y(banda) + 4, style: 'fill:#F59E0B;font-weight:700' }, 'banda'));
+    [2, 4, 6].forEach(function (m) {
+      if (m * emp >= tope) return;
+      g.appendChild(svg('line', { x1: L, x2: W - R + 4, y1: Y(m * emp), y2: Y(m * emp), stroke: '#94A3B8', 'stroke-width': 1.5, 'stroke-dasharray': '2 4' }));
+      g.appendChild(svg('text', { x: W - R + 8, y: Y(m * emp) + 4, style: 'fill:var(--suave);font-weight:700' }, m + '·EMP'));
+    });
     g.appendChild(svg('line', { x1: L, x2: W - R + 4, y1: Y(emp), y2: Y(emp), stroke: '#F43F5E', 'stroke-width': 2 }));
     g.appendChild(svg('text', { x: W - R + 8, y: Y(emp) + 4, style: 'fill:#F43F5E;font-weight:700' }, 'EMP'));
     g.appendChild(svg('line', { x1: L, x2: W - R + 4, y1: Y(0), y2: Y(0), style: 'stroke:var(--borde)' }));
@@ -105,22 +129,41 @@
       B: function (panel, h) {
         var v = h.estado.variante;
         var cont = crear('div', { clase: 'ejercicios', 'data-tono': 'cielo' });
-        cont.appendChild(h.encabezado('B', 'Reglas: A → ×1,25 · B → ×0,75 · C, D o E → ×0,5. Redondee al mes entero (empates al par) y limite entre 3 y 24 meses. Intervalo inicial: 12 meses.'));
+        cont.appendChild(h.encabezado('B', 'Reglas: A → ×1,25 · B → ×0,75 · C, D o E → ×0,5. Redondee al mes entero (empates al par) y limite entre 3 y 24 meses. Intervalo inicial: 12 meses. La guía de cada paso usa su estado de la parte A y su intervalo del paso anterior.'));
         v.equipos.forEach(function (e, i) {
-          cont.appendChild(h.ejercicio(e.icono, 'Equipo ' + (i + 1) + ' · ' + e.nombre, 6,
+          var n = i + 1, filas = [];
+          v.anios.forEach(function (a, k) {
+            filas.push(guia(h, function (r) {
+              var st = r.A['A' + n + (k + 1)];
+              if (!st) return { pendiente: 'Asigne en la parte A el estado de ' + a + '.' };
+              var previo = k === 0 ? 12 : num(r.B['B' + n + k]);
+              if (k > 0 && !(previo > 0)) return { pendiente: 'Escriba primero el intervalo tras la calibración de ' + v.anios[k - 1] + '.' };
+              return { partes: ['Estado ' + st + ' (parte A) · ', crear('b', { texto: comaCorta(previo) + ' × ' + comaCorta(FACTOR[st]) + ' = ' + coma(previo * FACTOR[st], 2) }), ' meses sin redondear'] };
+            }));
+            filas.push(h.respuesta('B', 'B' + n + (k + 1), 'Intervalo tras la calibración de ' + a, 'meses', { placeholder: 'Mes entero' }));
+          });
+          cont.appendChild(h.ejercicio(e.icono, 'Equipo ' + n + ' · ' + e.nombre, 6,
             ['Errores: ', e.errores.map(function (x, k) { return v.anios[k] + ' ' + x + ' ' + e.unidad; }).join(' · '), ' (EMP ±' + e.emp + ' ' + e.unidad + ').'],
-            v.anios.map(function (a, k) { return h.respuesta('B', 'B' + (i + 1) + (k + 1), 'Intervalo tras la calibración de ' + a, 'meses', { placeholder: 'Mes entero' }); }), i + 1));
+            filas, n));
         });
         panel.appendChild(cont);
       },
       C: function (panel, h) {
         var v = h.estado.variante;
         var cont = crear('div', { clase: 'ejercicios', 'data-tono': 'violeta' });
-        cont.appendChild(h.encabezado('C', 'NI = 12 · (0,8·X + 0,2·Y + 0,1·Z). X: última (' + v.anios[2] + '), Y: penúltima (' + v.anios[1] + '), Z: antepenúltima (' + v.anios[0] + '). Multiplicadores: A 1,0 · B 0,8 · C 0,6 · D 0,4 · E 0,3.'));
+        cont.appendChild(h.encabezado('C', 'NI = 12 · (0,8·X + 0,2·Y + 0,1·Z). X: última (' + v.anios[2] + '), Y: penúltima (' + v.anios[1] + '), Z: antepenúltima (' + v.anios[0] + '). Multiplicadores: A 1,0 · B 0,8 · C 0,6 · D 0,4 · E 0,3. La calculadora usa los estados que usted asignó en la parte A; usted redondea al mes entero (empates al par) y limita entre 3 y 24 meses.'));
         v.equipos.forEach(function (e, i) {
-          cont.appendChild(h.ejercicio('rayo', 'Equipo ' + (i + 1) + ' · ' + e.nombre, 4,
-            ['Use los estados que asignó en la parte A. Redondee al mes entero y limite entre 3 y 24 meses.'],
-            [h.respuesta('C', 'C' + (i + 1), 'Nuevo intervalo (Bare)', 'meses', { placeholder: 'Mes entero' })], i + 1));
+          var n = i + 1;
+          var calc = guia(h, function (r) {
+            var st = [1, 2, 3].map(function (k) { return r.A['A' + n + k]; });
+            var faltan = v.anios.filter(function (a, k) { return !st[k]; });
+            if (faltan.length) return { pendiente: 'Asigne en la parte A el estado de ' + faltan.join(', ') + '.' };
+            var ni = 12 * (0.8 * MULT[st[2]] + 0.2 * MULT[st[1]] + 0.1 * MULT[st[0]]);
+            return { partes: ['X = ' + st[2] + ' → ' + coma(MULT[st[2]], 1) + ' · Y = ' + st[1] + ' → ' + coma(MULT[st[1]], 1) + ' · Z = ' + st[0] + ' → ' + coma(MULT[st[0]], 1) + ' · ',
+              crear('b', { texto: 'NI = 12 · (0,8·' + coma(MULT[st[2]], 1) + ' + 0,2·' + coma(MULT[st[1]], 1) + ' + 0,1·' + coma(MULT[st[0]], 1) + ') = ' + coma(ni, 2) }), ' meses sin redondear'] };
+          });
+          cont.appendChild(h.ejercicio('rayo', 'Equipo ' + n + ' · ' + e.nombre, 4, null,
+            [calc, h.respuesta('C', 'C' + n, 'Nuevo intervalo (Bare)', 'meses', { placeholder: 'Mes entero' })], n));
         });
         panel.appendChild(cont);
       },
@@ -128,7 +171,13 @@
         var v = h.estado.variante;
         var cont = crear('div', { clase: 'ejercicios', 'data-tono': 'rosa' });
         cont.appendChild(h.encabezado('D', 'Proponga el intervalo final de cada equipo, entre lo que indican ambos métodos. La justificación la califica el docente.'));
-        cont.appendChild(h.ejercicio('calendario', 'Intervalos finales', 10, ['Se acepta cualquier valor entre el resultado de la escalera y el de Bare.'],
+        cont.appendChild(h.recuadro('Sus resultados de las partes B y C', function (r) {
+          return v.equipos.map(function (e, i) {
+            var esc = r.B['B' + (i + 1) + '3'], bare = r.C['C' + (i + 1)];
+            return ['Equipo ' + (i + 1) + ' · ' + e.nombre, (esc || bare) ? 'escalera ' + (esc || '—') + ' meses · Bare ' + (bare || '—') + ' meses' : ''];
+          });
+        }));
+        cont.appendChild(h.ejercicio('calendario', 'Intervalos finales', 10, ['Se acepta cualquier valor entre su resultado de la escalera y su resultado de Bare.'],
           v.equipos.map(function (e, i) { return h.respuesta('D', 'D' + (i + 1), 'Equipo ' + (i + 1) + ' · ' + e.nombre, 'meses', { placeholder: 'Mes entero' }); }), 1));
         cont.appendChild(crear('div', { clase: 'tarjeta aparecer', style: '--i:2' }, [
           crear('div', { clase: 'tarjeta-cab' }, [crear('span', { clase: 'ico-tile chico' }, [C.icono('mensaje')]), crear('h3', { texto: 'D6 · Justificación técnica' }), crear('span', { clase: 'pts', style: 'margin-left:auto', texto: '10 pts' })]),
@@ -163,6 +212,7 @@
       cont.appendChild(crear('table', { clase: 'tabla-mini', html:
         '<tr><td>A · dentro de la banda</td><td>× 1,25</td></tr><tr><td>B · entre banda y EMP</td><td>× 0,75</td></tr>' +
         '<tr><td>C, D o E · fuera del EMP</td><td>× 0,5 y evaluar el impacto (7.10)</td></tr><tr><td>Límites</td><td>3 a 24 meses</td></tr>' }));
+      cont.appendChild(crear('div', { clase: 'tips-redondeo', html: '<div>Las partes B, C y D se califican con los estados que usted asignó en la parte A: un error de clasificación se descuenta una sola vez.</div>' }));
       cont.appendChild(crear('h3', null, [C.icono('rayo'), 'Algoritmo de Bare (2006)']));
       cont.appendChild(crear('div', { clase: 'tips-redondeo', html: '<div>NI = CI · (W₁·X + W₂·Y + W₃·Z) con W₁ = 0,8 (última), W₂ = 0,2 (penúltima), W₃ = 0,1 (antepenúltima). Suman 1,1: un historial impecable amplía el intervalo un 10 %.</div>' }));
       cont.appendChild(crear('table', { clase: 'tabla-mini', html:

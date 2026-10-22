@@ -267,11 +267,52 @@
       return items.filter(function (i) { return String(estado.respuestas[parte][i] || '').trim(); }).length;
     }
 
+    // Observadores: se ejecutan cuando cambia una respuesta o se cambia de pestaña.
+    // Los usan los recuadros «Sus respuestas» y las calculadoras que dependen de respuestas.
+    var observadores = [];
+    function observar(fn) { observadores.push(fn); fn(estado.respuestas); }
+    function notificar() {
+      if (!estado) return;
+      observadores.forEach(function (fn) { fn(estado.respuestas); });
+    }
+
+    /**
+     * Recuadro de solo lectura con respuestas anteriores del estudiante.
+     * `filas(respuestas)` devuelve [[etiqueta, valor], …]; un valor vacío se muestra como «sin responder».
+     */
+    function recuadro(titulo, filas, opciones) {
+      opciones = opciones || {};
+      var lista = crear('dl', { clase: 'recuadro-lista' });
+      var caja = crear('div', { clase: 'recuadro-respuestas', role: 'note' }, [
+        crear('div', { clase: 'recuadro-cab' }, [C.icono('ojo'), crear('b', { texto: titulo || 'Sus respuestas' }),
+          crear('span', { texto: opciones.nota || 'Solo lectura · se actualiza al cambiar una respuesta' })]),
+        lista
+      ]);
+      observar(function (r) {
+        lista.textContent = '';
+        var f = filas(r) || [];
+        if (!f.length) lista.appendChild(crear('dd', { clase: 'vacio', texto: opciones.vacio || 'Aún no hay respuestas para mostrar.' }));
+        f.forEach(function (x) {
+          var v = x[1] === null || x[1] === undefined || String(x[1]).trim() === '' ? null : x[1];
+          lista.appendChild(crear('dt', { texto: x[0] }));
+          lista.appendChild(crear('dd', { clase: v === null ? 'vacio' : null, texto: v === null ? 'sin responder' : String(v) }));
+        });
+      });
+      return caja;
+    }
+
+    /** Texto de una opción elegida, a partir de la lista [[valor, texto], …]. */
+    function textoOpcion(opciones, valor) {
+      for (var i = 0; i < opciones.length; i++) if (opciones[i][0] === valor) return opciones[i][1];
+      return valor || '';
+    }
+
     var ayudas = {
       crear: crear, icono: C.icono, toast: C.toast, dato: dato, respuesta: respuesta, seleccion: seleccion, texto: texto,
       ejercicio: ejercicio, encabezado: encabezado, llenos: llenos, guardar: guardar,
       barraSimbolos: C.barraSimbolos, recordarFoco: C.recordarFoco,
-      actualizar: function () { actualizarAvance(); },
+      recuadro: recuadro, observar: observar, textoOpcion: textoOpcion,
+      actualizar: function () { actualizarAvance(); notificar(); },
       get estado() { return estado; }
     };
 
@@ -389,6 +430,7 @@
       clearInterval(reloj);
       reloj = C.iniciarReloj($('reloj'), estado.inicio);
       pintarPasos();
+      observadores = [];
       def.partes.forEach(function (p) {
         var panel = $('panel-' + p.id);
         panel.textContent = '';
@@ -444,6 +486,7 @@
       });
       if (p === 'R') pintarRevision();
       if (def.alMostrar) def.alMostrar(p, ayudas);
+      notificar();
       estado.pestana = p;
       guardar();
       var arriba = Math.max(0, $('pantalla-taller').offsetTop - 8);
@@ -498,6 +541,7 @@
       if (ok) ok.classList.toggle('lleno', !!String(t.value).trim());
       if (def.alResponder) def.alResponder(t.dataset.parte, t.dataset.item, ayudas);
       actualizarAvance();
+      notificar();
       guardar();
     }
 

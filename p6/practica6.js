@@ -185,9 +185,11 @@
         var salida = crear('div', { clase: 'calc-salida' }, [
           crear('div', null, [crear('small', { texto: 'n' }), crear('b', { texto: String(st.n) })]),
           crear('div', { 'data-tip': 'x̄ = Σxᵢ / n' }, [crear('small', { texto: 'Media x̄' }), crear('b', { texto: fmt(st.media, 3) + ' mg' })]),
-          crear('div', { 'data-tip': 's = √[Σ(xᵢ − x̄)² / (n − 1)]' }, [crear('small', { texto: 'Desviación estándar s' }), crear('b', { texto: fmt(st.s, 3).replace('+', '') + ' mg' })])
+          crear('div', { 'data-tip': 's = √[Σ(xᵢ − x̄)² / (n − 1)]' }, [crear('small', { texto: 'Desviación estándar s' }), crear('b', { texto: fmt(st.s, 3).replace('+', '') + ' mg' })]),
+          crear('div', { 'data-tip': 'Para los límites de advertencia: media ± 2s' }, [crear('small', { texto: '2s' }), crear('b', { texto: fmt(2 * st.s, 3).replace('+', '') + ' mg' })]),
+          crear('div', { 'data-tip': 'Para los límites de control: media ± 3s' }, [crear('small', { texto: '3s' }), crear('b', { texto: fmt(3 * st.s, 3).replace('+', '') + ' mg' })])
         ]);
-        var boton = crear('button', { type: 'button', clase: 'btn btn-primario' }, [C.icono('rayo'), 'Calcular media y desviación estándar']);
+        var boton = crear('button', { type: 'button', clase: 'btn btn-primario' }, [C.icono('rayo'), 'Calcular media, s, 2s y 3s']);
         boton.addEventListener('click', function () { salida.classList.remove('visible'); void salida.offsetWidth; salida.classList.add('visible'); C.toast('Estadísticos calculados', 'exito', 'rayo'); });
         cont.appendChild(crear('div', { clase: 'tarjeta calculadora aparecer', style: '--i:2' }, [
           crear('div', { clase: 'tarjeta-cab' }, [crear('span', { clase: 'ico-tile chico' }, [C.icono('teclado')]), crear('div', null, [crear('h3', { texto: 'Calculadora' }), crear('span', { clase: 'suave peq', texto: 'Media y desviación estándar muestral (n − 1) del periodo base.' })])]),
@@ -262,6 +264,14 @@
         panel.appendChild(crear('div', { clase: 'tarjeta', 'data-tono': 'rosa' }, [
           crear('div', { clase: 'tarjeta-cab' }, [crear('span', { clase: 'ico-tile' }, [C.icono('documento')]),
             crear('div', null, [crear('h2', { texto: 'Parte D · Acta de decisiones' }), crear('span', { clase: 'suave peq', texto: 'La califica el docente' })]), crear('span', { clase: 'pts', texto: '15 pts' })]),
+          h.recuadro('Sus respuestas de las partes B y C', function (r) {
+            var marcas = String(r.B.marcas || '').split(',').filter(function (x) { return x; }).map(function (m) {
+              var p = m.split(':'); return 'punto ' + p[0] + ' (regla ' + p[1] + ')';
+            });
+            var corto = function (lista, valor) { return valor ? h.textoOpcion(lista, valor).split(':')[0] : ''; };
+            return [['Señales marcadas', marcas.join(' · ')], ['C1 · Causa de la regla 1', corto(CAUSAS, r.C.C1)], ['C2 · Causa de la regla 2', corto(CAUSAS, r.C.C2)],
+              ['C3 · Causa de la regla 3', corto(CAUSAS, r.C.C3)], ['C4 · Ante una señal', h.textoOpcion(ACCION, r.C.C4)], ['C5 · Frecuencia', h.textoOpcion(FRECUENCIA, r.C.C5)]];
+          }),
           h.texto('D', 'acta', 'Acta breve: señales detectadas, causa probable, acciones (incluida la evaluación de los resultados emitidos, 7.10), decisión sobre la frecuencia y si conviene revisar los límites.',
             { max: 1500, minimo: 250, placeholder: 'Fecha: … Señales: … Acciones: …' })
         ]));

@@ -18,6 +18,9 @@
   ];
   var COLORES = ['#F59E0B', '#8B5CF6', '#0EA5E9', '#EC4899'];
   var ITEMS = { A: ['A1', 'A2', 'A3'], B: ['B1', 'B2', 'B3', 'B4', 'B5'], C: ['C1', 'C2', 'C3'] };
+  var OPC_A2 = [['si', 'Sí: E/x_ref × 100 en °C'], ['kelvin', 'Sí, pero siempre en kelvin'], ['escala', 'No: depende del cero de la escala']];
+  var OPC_A3 = [['cv', 'Con el coeficiente de variación (%)'], ['s', 'Con la desviación estándar s en °C'], ['rango', 'Con el valor máximo medido']];
+  var SI_NO = [['si', 'Sí cumple'], ['no', 'No cumple']];
 
   function num(t) { return Number(String(t).replace(/[\s ]/g, '').replace('−', '-').replace(',', '.')); }
   function fmt(v, dec) {
@@ -29,6 +32,19 @@
     Object.keys(attrs || {}).forEach(function (k) { n.setAttribute(k, attrs[k]); });
     (hijos || []).forEach(function (h) { n.appendChild(h); });
     return n;
+  }
+
+  /** Filas del recuadro «Sus resultados de la parte A». */
+  function filasA(h, v, r) {
+    var st = estadisticos(v), u = v.unidadE;
+    var f = [['Media x̄ (calculadora)', fmt(st.media, v.dec + 2) + ' ' + v.unidad], ['Desviación estándar s', fmt(st.s, v.dec + 2) + ' ' + v.unidad],
+      ['A1 · Error absoluto E', r.A.A1 ? r.A.A1 + ' ' + u : '']];
+    if (v.conceptual) {
+      f.push(['A2 · Error relativo en °C', h.textoOpcion(OPC_A2, r.A.A2)], ['A3 · Precisión', h.textoOpcion(OPC_A3, r.A.A3)]);
+    } else {
+      f.push(['A2 · Error relativo E%', r.A.A2 ? r.A.A2 + ' %' : ''], ['A3 · Coeficiente de variación', r.A.A3 ? r.A.A3 + ' %' : '']);
+    }
+    return f;
   }
 
   function estadisticos(v) {
@@ -179,10 +195,8 @@
         var uE = v.unidadE;
         var preguntas = [h.respuesta('A', 'A1', 'A1 · Error absoluto E = x̄ − x_ref, redondeado a 0,01 ' + uE + (uE === 'mg' ? ' (1 g = 1000 mg)' : ''), uE, { placeholder: 'Con su signo' })];
         if (v.conceptual) {
-          preguntas.push(h.seleccion('A', 'A2', 'A2 · ¿Conviene expresar el error relativo (%) de un termómetro en °C?', [
-            ['si', 'Sí: E/x_ref × 100 en °C'], ['kelvin', 'Sí, pero siempre en kelvin'], ['escala', 'No: depende del cero de la escala']], { columnas: 3 }));
-          preguntas.push(h.seleccion('A', 'A3', 'A3 · ¿Cómo se expresa mejor la precisión de este termómetro?', [
-            ['cv', 'Con el coeficiente de variación (%)'], ['s', 'Con la desviación estándar s en °C'], ['rango', 'Con el valor máximo medido']], { columnas: 3 }));
+          preguntas.push(h.seleccion('A', 'A2', 'A2 · ¿Conviene expresar el error relativo (%) de un termómetro en °C?', OPC_A2, { columnas: 3 }));
+          preguntas.push(h.seleccion('A', 'A3', 'A3 · ¿Cómo se expresa mejor la precisión de este termómetro?', OPC_A3, { columnas: 3 }));
         } else {
           var p2 = v.decA2 === 3 ? '0,001' : '0,01';
           preguntas.push(h.respuesta('A', 'A2', 'A2 · Error relativo E% = E / x_ref × 100, redondeado a ' + p2 + ' %', '%', { placeholder: 'Con su signo' }));
@@ -206,7 +220,7 @@
         });
         cont.appendChild(rejilla);
         cont.appendChild(h.ejercicio('mira', 'B5 · Su equipo', 5, ['Con sus resultados de la parte A y los EMP de la ficha (' + v.empTexto + '), ¿cómo clasifica su ', crear('b', { texto: v.nombre.toLowerCase() }), '?'],
-          [h.seleccion('B', 'B5', 'Su equipo es…', CLASES, { columnas: 2 })], 5));
+          [h.recuadro('Sus resultados de la parte A', function (r) { return filasA(h, v, r); }), h.seleccion('B', 'B5', 'Su equipo es…', CLASES, { columnas: 2 })], 5));
         panel.appendChild(cont);
       },
 
@@ -215,20 +229,26 @@
         var partes = v.empTexto.split(' · ');
         var cont = crear('div', { clase: 'ejercicios', 'data-tono': 'cielo' });
         cont.appendChild(h.encabezado('C', 'Compare sus resultados con el error máximo permitido (EMP) de la ficha.'));
+        cont.appendChild(h.recuadro('Sus resultados de la parte A', function (r) { return filasA(h, v, r); }));
         cont.appendChild(h.ejercicio('regla', 'C1 · Error sistemático', 10, ['Criterio: ', h.dato(partes[0]), '. ¿Su equipo cumple?'],
-          [h.seleccion('C', 'C1', '¿Cumple el error sistemático?', [['si', 'Sí cumple'], ['no', 'No cumple']], { columnas: 2 })], 1));
+          [h.seleccion('C', 'C1', '¿Cumple el error sistemático?', SI_NO, { columnas: 2 })], 1));
         cont.appendChild(h.ejercicio('actividad', 'C2 · Error aleatorio', 10, ['Criterio: ', h.dato(partes[1]), '. ¿Su equipo cumple?'],
-          [h.seleccion('C', 'C2', '¿Cumple el error aleatorio?', [['si', 'Sí cumple'], ['no', 'No cumple']], { columnas: 2 })], 2));
+          [h.seleccion('C', 'C2', '¿Cumple el error aleatorio?', SI_NO, { columnas: 2 })], 2));
         cont.appendChild(h.ejercicio('insignia', 'C3 · Acción', 10, ['Según sus respuestas, ¿qué hace con el equipo? Elija la acción principal.'],
           [h.seleccion('C', 'C3', 'Acción', ACCIONES, { columnas: 1 })], 3));
         panel.appendChild(cont);
       },
 
       D: function (panel, h) {
+        var v = h.estado.variante;
         panel.appendChild(crear('div', { clase: 'tarjeta', 'data-tono': 'rosa' }, [
           crear('div', { clase: 'tarjeta-cab' }, [crear('span', { clase: 'ico-tile' }, [C.icono('mensaje')]),
             crear('div', null, [crear('h2', { texto: 'Parte D · Conclusión' }), crear('span', { clase: 'suave peq', texto: 'La califica el docente' })]),
             crear('span', { clase: 'pts', texto: '15 pts' })]),
+          h.recuadro('Sus respuestas anteriores', function (r) {
+            return filasA(h, v, r).concat([['B5 · Su equipo es', h.textoOpcion(CLASES, r.B.B5)], ['C1 · Error sistemático', h.textoOpcion(SI_NO, r.C.C1)],
+              ['C2 · Error aleatorio', h.textoOpcion(SI_NO, r.C.C2)], ['C3 · Acción', h.textoOpcion(ACCIONES, r.C.C3)]]);
+          }),
           h.texto('D', 'conclusion', 'En máximo cinco líneas: ¿su equipo es veraz?, ¿es preciso?, ¿qué decide y por qué? Si no cumple, ¿qué haría con los resultados que ya se emitieron con él?',
             { max: 900, minimo: 200, alto: 160, placeholder: 'Mi equipo…' })
         ]));

@@ -39,6 +39,15 @@
     ['aplazar', 'Aplazar la decisión: primero resolver los hallazgos críticos o la información que falta']];
   var ICONOS = { termometro: 'termometro', balanza: 'medalla', micropipeta: 'vaso' };
 
+  /** Recuadro con los hallazgos de los pasos 1 a 4, B3 y (en la parte D) la estrategia de C1. */
+  function respuestasPrevias(h, conC) {
+    return h.recuadro('Sus respuestas anteriores', function (r) {
+          var paso = function (i) { var v = r.A[PASOS[i][0]]; return v ? (v === 'ok' ? 'Conforme' : h.textoOpcion(PASOS[i][3], v)) : ''; };
+          return [['Paso 1 · Trazabilidad', paso(0)], ['Paso 2 · Identidad', paso(1)], ['Paso 3 · Fecha', paso(2)], ['Paso 4 · Alcance', paso(3)],
+            ['B3 · ¿|E| + U ≤ EMP?', r.B.B3 === 'si' ? 'Sí' : (r.B.B3 === 'no' ? 'No' : '')]].concat(conC ? [['C1 · Estrategia', h.textoOpcion(ESTRATEGIAS, r.C.C1)]] : []);
+        });
+  }
+
   function fecha(iso) {
     var p = String(iso).split('-');
     var meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -200,6 +209,7 @@
         var v = h.estado.variante;
         var cont = crear('div', { clase: 'ejercicios', 'data-tono': 'esmeralda' });
         cont.appendChild(h.encabezado('C', 'Paso +1 (diapositiva 83): decida cómo usará la información del certificado y cómo entra en su presupuesto de incertidumbre.'));
+        cont.appendChild(respuestasPrevias(h, false));
         cont.appendChild(evidencias(v));
         cont.appendChild(h.ejercicio('convertir', 'C1 · Estrategia', 10, ['Con todo lo revisado (hallazgos y resultados), ¿cómo usará el instrumento en el punto de uso?'],
           [h.seleccion('C', 'C1', 'Estrategia', ESTRATEGIAS, { columnas: 1 })], 1));
@@ -216,6 +226,7 @@
           crear('div', { clase: 'zona corr' }, [C.icono('lapiz'), crear('b', { texto: 'Apto con corrección' }), crear('span', { texto: '|E| + U > EMP · U ≤ EMP · admite corregir' })]),
           crear('div', { clase: 'zona no' }, [C.icono('xCirculo'), crear('b', { texto: 'No apto' }), crear('span', { texto: 'Los demás casos' })])
         ]));
+        cont.appendChild(respuestasPrevias(h, true));
         cont.appendChild(evidencias(v));
         cont.appendChild(h.ejercicio('insignia', 'D1 · Decisión de confirmación metrológica', 8,
           ['Tenga en cuenta los hallazgos de los pasos 1 a 4: si alguno falla, el certificado no sirve para confirmar el equipo.'],
