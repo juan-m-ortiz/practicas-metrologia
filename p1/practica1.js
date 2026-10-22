@@ -1,19 +1,11 @@
-// Práctica 1 · Cazadores de errores del SI — lógica de la página.
-// Código PÚBLICO: contiene el informe (con sus errores, que son el ejercicio) y la
-// interfaz. La clave de respuestas y la calificación están solo en Apps Script.
+// Práctica 1 · Cazadores de errores del SI — contenido de la práctica.
+// Código PÚBLICO: el informe (con sus errores, que son el ejercicio) y los enunciados.
+// La clave de respuestas y la calificación están solo en Apps Script.
 (function () {
   'use strict';
 
   var C = window.Comun;
   var crear = C.crear;
-  var PRACTICA = 'P1';
-  var CLAVE_BORRADOR = 'practicas:p1:borrador';
-  var CLAVE_ENVIO = 'practicas:p1:envio';
-  var CIRCUNFERENCIA = 540.35;
-
-  // ---------------------------------------------------------------------------
-  // Contenido
-  // ---------------------------------------------------------------------------
 
   var REGLAS = [
     ['R1', 'Punto final o plural en el símbolo', '«kgs», «min.»'],
@@ -32,7 +24,6 @@
     ['R14', 'Unidad no SI sin convertir (NIST SP 811)', 'psi sin su valor en kPa']
   ];
 
-  // Cada valor clicable tiene un id; los demás textos son fijos.
   var INFORME = [
     { titulo: '1. Recepción de la muestra', filas: [
       ['Matriz', 'Agua para consumo humano'],
@@ -76,316 +67,25 @@
       if (typeof f[1] === 'object') { ETIQUETAS[f[1].id] = f[0]; VALORES[f[1].id] = f[1].v; ORDEN_A.push(f[1].id); }
     });
   });
-
   var ITEMS_B = ['B1', 'B2', 'B3', 'B4U', 'B4y', 'B4expr'];
   var ITEMS_C = ['C1valor', 'C1U', 'C2valor', 'C2U', 'C3'];
 
-  var PASOS = [
-    { id: 'A', titulo: 'Informe', icono: 'buscar', tono: 'ambar', pts: 45 },
-    { id: 'B', titulo: 'Redondeo', icono: 'redondeo', tono: 'violeta', pts: 20 },
-    { id: 'C', titulo: 'Conversión', icono: 'convertir', tono: 'cielo', pts: 20 },
-    { id: 'D', titulo: 'Reflexión', icono: 'mensaje', tono: 'rosa', pts: 15 },
-    { id: 'R', titulo: 'Enviar', icono: 'enviar', tono: 'esmeralda' }
-  ];
-
-  // Valores de ejemplo para el modo demostración (no son los de ningún estudiante real)
-  var VARIANTE_DEMO = {
-    B1: { valor: '7,2412', intervalo: '0,01' },
-    B2: { valor: '4,505', intervalo: '0,01' },
-    B3: { valor: '71,548', dosEtapas: '71,6' },
-    B4: { magnitud: 'concentración másica de nitratos (NO₃⁻) en agua', unidad: 'mg/L', y: '21,018 78', U: '0,5708' },
-    C1: { p: '15,3', U: '0,5' },
-    C2: { t: '115,0', U: '0,6' },
-    C3: { v: '6,0' }
-  };
-
-  // ---------------------------------------------------------------------------
-  // Estado y utilidades
-  // ---------------------------------------------------------------------------
-
-  var estado = null;      // { nombre, correo, inicio, variante, idCliente, respuestas, pestana }
-  var reloj = null;
-  var temporizadorGuardado = null;
-
-  function $(id) { return document.getElementById(id); }
-  function respuestasVacias() { return { A: {}, B: {}, C: {}, D: { reflexion: '' } }; }
-
-  function errorEn(id, mensaje) {
-    var el = $(id);
-    el.querySelector('p').textContent = mensaje || '';
-    el.hidden = !mensaje;
-    if (mensaje) { el.classList.remove('sacudir'); void el.offsetWidth; el.classList.add('sacudir'); }
-  }
-
-  function guardarBorrador() {
-    if (!estado) return;
-    clearTimeout(temporizadorGuardado);
-    temporizadorGuardado = setTimeout(function () {
-      var ok = C.almacen.guardar(CLAVE_BORRADOR, estado);
-      var chip = $('guardado');
-      chip.querySelector('.txt').textContent = ok ? 'Guardado' : 'Sin guardado local';
-      chip.classList.remove('activo'); void chip.offsetWidth; chip.classList.add('activo');
-    }, 300);
-  }
-
-  function ocupado(boton, si) {
-    boton.classList.toggle('cargando', si);
-    boton.disabled = si;
-  }
-
-  function simular(datos) {
-    if (datos.accion === 'iniciar') {
-      return { ok: true, practica: PRACTICA, nombre: datos.nombre, correo: datos.correo.trim().toLowerCase(),
-        inicio: new Date().toISOString(), variante: VARIANTE_DEMO };
-    }
-    if (datos.accion === 'enviar') {
-      console.info('Modo demostración. Esto es lo que se enviaría al servidor:', datos);
-      return { ok: true, idEnvio: 'demo', codigo: 'DEMO42', retroalimentacion: 'ninguna' };
-    }
-    return { ok: false, codigo: 'NO_DISPONIBLE', mensaje: 'En modo demostración no hay resultados para consultar.' };
-  }
-
-  // ---------------------------------------------------------------------------
-  // Pantallas
-  // ---------------------------------------------------------------------------
-
-  function mostrar(pantalla) {
-    ['inicio', 'taller', 'enviado', 'consulta'].forEach(function (p) { $('pantalla-' + p).hidden = p !== pantalla; });
-    var taller = pantalla === 'taller';
-    $('chip-reloj').hidden = !taller;
-    $('guardado').hidden = !taller;
-    $('abrir-apoyo').hidden = !taller;
-    $('progreso-global').hidden = !taller;
-    document.body.classList.toggle('con-pasos', taller);
-    window.scrollTo(0, 0);
-  }
-
-  document.addEventListener('click', function (e) {
-    var destino = e.target.closest('[data-ir]');
-    if (!destino) return;
-    var ir = destino.getAttribute('data-ir');
-    if (ir === 'consulta') prepararConsulta();
-    if (ir === 'inicio') prepararInicio();
-    mostrar(ir);
-  });
-
-  // ---------------------------------------------------------------------------
-  // Disponibilidad de la práctica (la decide la hoja de Google)
-  // ---------------------------------------------------------------------------
-
-  var MENSAJES_BLOQUEO = {
-    proximamente: { icono: 'candado', tono: 'indigo', titulo: 'Esta práctica aún no está habilitada',
-      texto: 'El docente la habilitará a medida que avance el curso. Vuelva al portal para ver las prácticas disponibles.' },
-    programada: { icono: 'reloArena', tono: 'ambar', titulo: 'Esta práctica está programada' },
-    cerrada: { icono: 'prohibido', tono: 'rosa', titulo: 'Esta práctica ya cerró',
-      texto: 'El plazo para desarrollarla terminó.' }
-  };
-
-  function pintarBloqueo(info) {
-    var m = MENSAJES_BLOQUEO[info.estado];
-    if (!m) return;
-    $('zona-registro').hidden = true;
-    var texto = info.estado === 'programada' ? 'Se habilita el ' + C.fecha(info.abreDesde) + '.' : m.texto;
-    var acciones = [crear('a', { clase: 'btn btn-primario', href: '../' }, [C.icono('casa'), 'Ir al portal'])];
-    if (info.resultados) {
-      var b = crear('button', { type: 'button', clase: 'btn', 'data-ir': 'consulta' }, [C.icono('medalla'), 'Consultar mi nota']);
-      acciones.unshift(b);
-      texto += ' Ya puede consultar su nota con su correo y su código.';
-    }
-    var cont = $('estado-practica');
-    cont.textContent = '';
-    cont.appendChild(crear('div', { clase: 'tarjeta bloqueo aparecer', 'data-tono': m.tono }, [
-      crear('span', { clase: 'ico-tile' }, [C.icono(m.icono)]),
-      crear('h2', { texto: m.titulo }),
-      crear('p', { clase: 'suave', texto: texto }),
-      crear('div', { clase: 'acciones', style: 'justify-content:center' }, acciones)
-    ]));
-  }
-
-  async function verificarDisponibilidad() {
-    var boton = $('boton-comenzar');
-    ocupado(boton, true);
-    var r = await C.llamar({ accion: 'estado' });
-    ocupado(boton, false);
-    if (!r.ok) return;   // sin conexión: el servidor vuelve a validar al iniciar
-    var info = (r.practicas || []).filter(function (p) { return p.id === PRACTICA; })[0];
-    if (info && info.estado !== 'abierta') pintarBloqueo(info);
-  }
-
-  // ---------------------------------------------------------------------------
-  // Portada y registro
-  // ---------------------------------------------------------------------------
-
-  function prepararInicio() {
-    var envio = C.almacen.leer(CLAVE_ENVIO);
-    if (envio && envio.codigo) {
-      $('aviso-enviado').hidden = false;
-      $('texto-enviado').textContent = 'Desde este navegador ya se envió la práctica a nombre de ' + envio.nombre +
-        '. Su código de consulta es ' + envio.codigo + '.';
-    } else {
-      $('aviso-enviado').hidden = true;
-    }
-    var b = C.almacen.leer(CLAVE_BORRADOR);
-    $('aviso-borrador').hidden = !(b && b.variante && b.correo);
-    if (b && b.correo) $('texto-borrador').textContent = 'Tiene una práctica sin enviar a nombre de ' + b.nombre + ' (' + b.correo + ').';
-  }
-
-  $('continuar-borrador').addEventListener('click', function () {
-    var b = C.almacen.leer(CLAVE_BORRADOR);
-    if (!b) return;
-    estado = b;
-    abrirTaller();
-    C.toast('Continuamos donde iba', 'exito', 'reanudar');
-  });
-
-  $('descartar-borrador').addEventListener('click', function () {
-    if (!confirm('¿Descartar el trabajo guardado en este navegador? No se puede recuperar.')) return;
-    C.almacen.borrar(CLAVE_BORRADOR);
-    prepararInicio();
-    C.toast('Borrador descartado', 'info', 'papelera');
-  });
-
-  var PATRON_CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-
-  $('form-registro').addEventListener('submit', async function (e) {
-    e.preventDefault();
-    var nombre = $('nombre').value.replace(/\s+/g, ' ').trim();
-    var correo = $('correo').value.trim().toLowerCase();
-    var correo2 = $('correo2').value.trim().toLowerCase();
-    if (nombre.length < 3) return errorEn('error-registro', 'Escriba su nombre completo.');
-    if (!PATRON_CORREO.test(correo)) return errorEn('error-registro', 'Escriba un correo válido.');
-    if (correo !== correo2) return errorEn('error-registro', 'Los dos correos no coinciden.');
-    if (!$('autoriza').checked) return errorEn('error-registro', 'Debe autorizar el tratamiento de sus datos para continuar.');
-    errorEn('error-registro', '');
-
-    var boton = $('boton-comenzar');
-    ocupado(boton, true);
-    var r = await C.llamar({ accion: 'iniciar', practica: PRACTICA, nombre: nombre, correo: correo, autorizaDatos: true }, simular);
-    ocupado(boton, false);
-    if (!r.ok) return errorEn('error-registro', r.mensaje || 'No fue posible iniciar la práctica.');
-
-    var previo = C.almacen.leer(CLAVE_BORRADOR);
-    var mismo = previo && previo.correo === r.correo;
-    estado = {
-      nombre: r.nombre, correo: r.correo, inicio: mismo ? previo.inicio : r.inicio, variante: r.variante,
-      idCliente: mismo ? previo.idCliente : C.uuid(),
-      respuestas: mismo ? previo.respuestas : respuestasVacias(), pestana: 'A'
-    };
-    guardarBorrador();
-    abrirTaller();
-    C.toast('¡Éxitos, ' + r.nombre.split(' ')[0] + '!', 'exito', 'destellos');
-  });
-
-  // ---------------------------------------------------------------------------
-  // Taller
-  // ---------------------------------------------------------------------------
-
-  function abrirTaller() {
-    clearInterval(reloj);
-    reloj = C.iniciarReloj($('reloj'), estado.inicio);
-    pintarPasos();
-    pintarInforme();
-    pintarListaErrores();
-    pintarEjercicios();
-    $('reflexion').value = estado.respuestas.D.reflexion || '';
-    actualizarReflexion();
-    agregarNavegacion();
-    mostrar('taller');
-    actualizarAvance();
-    elegirPestana(estado.pestana || 'A');
-  }
-
-  function pintarPasos() {
-    var nav = $('pasos');
-    nav.textContent = '';
-    PASOS.forEach(function (p) {
-      var b = crear('button', { type: 'button', role: 'tab', id: 'paso-' + p.id, clase: 'paso', 'data-tono': p.tono,
-        'aria-controls': 'panel-' + p.id, 'aria-selected': 'false',
-        'data-tip': p.pts ? 'Parte ' + p.id + ' · ' + p.pts + ' puntos' : 'Revise su avance y envíe' }, [
-        crear('span', { clase: 'ico-tile' }, [C.icono(p.icono)]),
-        crear('span', { clase: 'paso-texto' }, [
-          crear('b', null, [p.id === 'R' ? null : crear('span', { clase: 'paso-letra', texto: p.id + ' · ' }), p.titulo]),
-          crear('span', { id: 'sub-' + p.id })
-        ]),
-        crear('span', { clase: 'paso-barra' }, [crear('i', { id: 'barra-' + p.id })])
-      ]);
-      nav.appendChild(b);
-    });
-  }
-
-  $('pasos').addEventListener('click', function (e) {
-    var b = e.target.closest('.paso');
-    if (b) elegirPestana(b.id.slice(5));
-  });
-  $('pasos').addEventListener('keydown', function (e) {
-    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
-    var orden = PASOS.map(function (p) { return p.id; });
-    var i = orden.indexOf(estado.pestana) + (e.key === 'ArrowRight' ? 1 : -1);
-    var p = orden[(i + orden.length) % orden.length];
-    elegirPestana(p);
-    $('paso-' + p).focus();
-  });
-
-  function elegirPestana(p) {
-    PASOS.forEach(function (x) {
-      $('paso-' + x.id).setAttribute('aria-selected', String(x.id === p));
-      var panel = $('panel-' + x.id);
-      var antes = panel.hidden;
-      panel.hidden = x.id !== p;
-      if (antes && !panel.hidden) { panel.classList.remove('panel'); void panel.offsetWidth; panel.classList.add('panel'); }
-    });
-    if (p === 'R') pintarRevision();
-    estado.pestana = p;
-    guardarBorrador();
-    var arriba = Math.max(0, $('pantalla-taller').offsetTop - 8);
-    if (window.scrollY > arriba) window.scrollTo({ top: arriba, behavior: C.sinMovimiento ? 'auto' : 'smooth' });
-  }
-
-  /** Botones «Anterior / Siguiente» al final de cada parte. */
-  function agregarNavegacion() {
-    PASOS.forEach(function (p, i) {
-      if (p.id === 'R') return;
-      var panel = $('panel-' + p.id);
-      var viejo = panel.querySelector('.navegacion');
-      if (viejo) viejo.remove();
-      var sig = PASOS[i + 1];
-      var hijos = [];
-      if (i > 0) {
-        var ant = crear('button', { type: 'button', clase: 'btn' }, [C.icono('flechaIzq'), 'Anterior']);
-        ant.addEventListener('click', function () { elegirPestana(PASOS[i - 1].id); });
-        hijos.push(ant);
-      }
-      var bsig = crear('button', { type: 'button', clase: 'btn btn-primario' }, [
-        sig.id === 'R' ? 'Revisar y enviar' : 'Siguiente: ' + sig.titulo, C.icono('flecha', 'icono-mover')]);
-      bsig.addEventListener('click', function () { elegirPestana(sig.id); });
-      hijos.push(bsig);
-      panel.appendChild(crear('div', { clase: 'acciones navegacion', style: 'justify-content:flex-end' }, hijos));
-    });
-  }
-
-  $('abrir-apoyo').addEventListener('click', function () { abrirCajon(true); });
-  $('cerrar-apoyo').addEventListener('click', function () { abrirCajon(false); });
-  $('cajon-fondo').addEventListener('click', function () { abrirCajon(false); });
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') abrirCajon(false); });
-
-  function abrirCajon(abrir) {
-    $('cajon').classList.toggle('abierto', abrir);
-    $('cajon').setAttribute('aria-hidden', String(!abrir));
-    $('cajon-fondo').classList.toggle('visible', abrir);
-    if (abrir) $('cerrar-apoyo').focus();
-  }
-
-  // --- Parte A: informe -------------------------------------------------------
-
-  function marcados() { return ORDEN_A.filter(function (id) { return estado.respuestas.A[id]; }); }
-
+  var ctx = null;              // ayudas del motor
+  function respA() { return ctx.estado.respuestas.A; }
+  function marcados() { return ORDEN_A.filter(function (id) { return respA()[id]; }); }
   function nombreRegla(id) {
     for (var i = 0; i < REGLAS.length; i++) if (REGLAS[i][0] === id) return REGLAS[i][1];
     return '';
   }
 
+  // ---------------------------------------------------------------------------
+  // Parte A: informe con errores y editor
+  // ---------------------------------------------------------------------------
+
+  var panelA = null, informe = null, listaErrores = null, nErrores = null, editorCampo = null;
+
   function botonValor(campo) {
-    var r = estado.respuestas.A[campo.id];
+    var r = respA()[campo.id];
     var b = crear('button', { type: 'button', clase: 'valor' + (r ? ' marcado' : ''), 'data-campo': campo.id,
       'aria-label': ETIQUETAS[campo.id] + ': ' + campo.v + (r ? ' (marcado como error)' : ''),
       'data-tip': r ? 'Marcado: ' + r.regla + ' → ' + r.correccion + ' · clic para editar' : 'Clic para revisar este valor' },
@@ -395,15 +95,12 @@
   }
 
   function pintarInforme() {
-    var inf = $('informe');
-    inf.textContent = '';
-    inf.appendChild(crear('div', { clase: 'doc-cab' }, [
+    informe.textContent = '';
+    informe.appendChild(crear('div', { clase: 'doc-cab' }, [
       crear('div', { clase: 'doc-titulo' }, [
         crear('span', { clase: 'ico-tile', 'data-tono': 'esmeralda' }, [C.icono('matraz')]),
-        crear('div', null, [
-          crear('h2', { texto: 'Informe de resultados N.º IR-2026-0815' }),
-          crear('p', { texto: 'Laboratorio de aguas · Cliente: Acueducto municipal · Emitido el 2026-10-20' })
-        ])
+        crear('div', null, [crear('h2', { texto: 'Informe de resultados N.º IR-2026-0815' }),
+          crear('p', { texto: 'Laboratorio de aguas · Cliente: Acueducto municipal · Emitido el 2026-10-20' })])
       ]),
       crear('span', { clase: 'sello' }, [C.icono('alerta'), 'Documento ficticio'])
     ]));
@@ -412,23 +109,15 @@
       var sec = crear('section', { clase: 'doc-seccion' }, [crear('h4', { texto: s.titulo })]);
       if (s.filas) {
         s.filas.forEach(function (f) {
-          sec.appendChild(crear('div', { clase: 'doc-fila' }, [
-            crear('span', { clase: 'etq', texto: f[0] }),
-            crear('span', null, [typeof f[1] === 'object' ? botonValor(f[1]) : f[1]])
-          ]));
+          sec.appendChild(crear('div', { clase: 'doc-fila' }, [crear('span', { clase: 'etq', texto: f[0] }),
+            crear('span', null, [typeof f[1] === 'object' ? botonValor(f[1]) : f[1]])]));
         });
       } else {
         var tabla = crear('table', { clase: 'doc-tabla' });
-        tabla.appendChild(crear('thead', null, [crear('tr', null, [
-          crear('th', { texto: 'Parámetro' }), crear('th', { texto: 'Resultado' }), crear('th', { texto: 'Método' })
-        ])]));
+        tabla.appendChild(crear('thead', null, [crear('tr', null, [crear('th', { texto: 'Parámetro' }), crear('th', { texto: 'Resultado' }), crear('th', { texto: 'Método' })])]));
         var tb = crear('tbody');
         s.tabla.forEach(function (f) {
-          tb.appendChild(crear('tr', null, [
-            crear('td', { texto: f[0] }),
-            crear('td', null, [botonValor(f[1]), f[2]]),
-            crear('td', { texto: f[3] })
-          ]));
+          tb.appendChild(crear('tr', null, [crear('td', { texto: f[0] }), crear('td', null, [botonValor(f[1]), f[2]]), crear('td', { texto: f[3] })]));
         });
         tabla.appendChild(tb);
         sec.appendChild(tabla);
@@ -438,43 +127,31 @@
     cuerpo.appendChild(crear('div', { clase: 'doc-pie' }, [C.icono('info'), crear('span', { texto:
       'Valor máximo aceptable de plomo en agua para consumo humano: 0,01 mg/L (Resolución 2115 de 2007). ' +
       'La incertidumbre expandida se declara con k = 2, para un nivel de confianza de aproximadamente 95 %.' })]));
-    inf.appendChild(cuerpo);
+    informe.appendChild(cuerpo);
   }
 
-  $('informe').addEventListener('click', function (e) {
-    var b = e.target.closest('[data-campo]');
-    if (b) abrirEditor(b.getAttribute('data-campo'));
-  });
-
   function pintarListaErrores() {
-    var lista = $('lista-errores');
-    lista.textContent = '';
+    listaErrores.textContent = '';
     var ids = marcados();
-    $('n-errores').textContent = ids.length;
+    nErrores.textContent = ids.length;
     if (!ids.length) {
-      lista.appendChild(crear('li', { clase: 'vacio' }, [C.icono('buscar'),
+      listaErrores.appendChild(crear('li', { clase: 'vacio' }, [C.icono('buscar'),
         crear('span', { texto: 'Aún no ha marcado errores. Haga clic en un valor del informe para empezar.' })]));
       return;
     }
     ids.forEach(function (id, i) {
-      var r = estado.respuestas.A[id];
+      var r = respA()[id];
       var editar = crear('button', { type: 'button', clase: 'btn-icono', 'data-tip': 'Editar', 'aria-label': 'Editar ' + ETIQUETAS[id] }, [C.icono('lapiz')]);
       editar.addEventListener('click', function () { abrirEditor(id); });
       var quitar = crear('button', { type: 'button', clase: 'btn-icono', 'data-tip': 'Quitar la marca', 'aria-label': 'Quitar la marca de ' + ETIQUETAS[id] }, [C.icono('papelera')]);
-      quitar.addEventListener('click', function () {
-        delete estado.respuestas.A[id];
-        refrescarA();
-        C.toast('Marca quitada', 'info', 'papelera');
-      });
-      lista.appendChild(crear('li', { clase: 'error-item', style: 'animation-delay:' + (i * 30) + 'ms' }, [
+      quitar.addEventListener('click', function () { delete respA()[id]; refrescarA(); C.toast('Marca quitada', 'info', 'papelera'); });
+      listaErrores.appendChild(crear('li', { clase: 'error-item', style: 'animation-delay:' + (i * 30) + 'ms' }, [
         crear('span', { clase: 'valor-num', texto: String(i + 1) }),
         crear('div', { style: 'min-width:0' }, [
           crear('div', { clase: 'campo-nombre', texto: ETIQUETAS[id] }),
-          crear('div', { clase: 'cambio' }, [
-            crear('span', { clase: 'antes', texto: VALORES[id] }), C.icono('flecha'),
+          crear('div', { clase: 'cambio' }, [crear('span', { clase: 'antes', texto: VALORES[id] }), C.icono('flecha'),
             crear('span', { clase: 'despues', texto: r.correccion }),
-            crear('span', { clase: 'regla-pill', texto: r.regla, 'data-tip': nombreRegla(r.regla) })
-          ])
+            crear('span', { clase: 'regla-pill', texto: r.regla, 'data-tip': nombreRegla(r.regla) })])
         ]),
         crear('div', { clase: 'botones-item' }, [editar, quitar])
       ]));
@@ -482,405 +159,228 @@
   }
 
   function refrescarA() {
-    guardarBorrador();
+    ctx.guardar();
     pintarInforme();
     pintarListaErrores();
-    actualizarAvance();
+    ctx.actualizar();
   }
 
-  // --- Editor (diálogo) ---------------------------------------------------------
-
-  var editorCampo = null;
-
-  (function prepararEditor() {
-    var grid = $('editor-reglas');
+  function crearEditor() {
+    if (document.getElementById('editor')) return;
+    var d = crear('dialog', { clase: 'modal', id: 'editor', 'aria-labelledby': 'editor-titulo' });
+    d.innerHTML =
+      '<form method="dialog" id="form-editor">' +
+      '<div class="modal-cab"><span class="ico-tile chico" data-tono="ambar"><i data-icono="buscar"></i></span><h3 id="editor-titulo"></h3>' +
+      '<button type="submit" value="cancelar" class="btn-icono" formnovalidate data-tip="Cerrar sin cambios" aria-label="Cerrar"><i data-icono="x"></i></button></div>' +
+      '<div class="modal-cuerpo"><div class="original"><i data-icono="alerta"></i><span id="editor-original"></span></div>' +
+      '<span class="campo" style="margin-bottom:8px"><span class="etq">¿Qué regla incumple?</span></span>' +
+      '<div class="reglas-grid" id="editor-reglas" role="radiogroup" aria-label="Regla que incumple"></div>' +
+      '<label class="campo" style="margin-bottom:0"><span class="etq">Versión corregida (valor y unidad)</span>' +
+      '<span class="control"><span class="ico"><i data-icono="lapiz"></i></span><input type="text" id="editor-correccion" maxlength="120" autocomplete="off" spellcheck="false" placeholder="Ej.: 25 °C"></span></label>' +
+      '<div id="editor-simbolos"></div>' +
+      '<div class="aviso aviso-error" id="error-editor" role="alert" hidden><span class="ico"><i data-icono="alerta"></i></span><p></p></div></div>' +
+      '<div class="modal-pie"><button type="submit" value="quitar" class="btn btn-peligro" id="editor-quitar"><i data-icono="papelera"></i> Quitar la marca</button>' +
+      '<button type="submit" value="cancelar" class="btn" formnovalidate>Cancelar</button>' +
+      '<button type="submit" value="guardar" class="btn btn-primario" id="editor-guardar"><i data-icono="check"></i> <span>Marcar como error</span></button></div></form>';
+    document.body.appendChild(d);
+    var grid = d.querySelector('#editor-reglas');
     REGLAS.forEach(function (r) {
       grid.appendChild(crear('label', { clase: 'regla-opcion', 'data-tip': 'Ejemplo incorrecto: ' + r[2] }, [
-        crear('input', { type: 'radio', name: 'regla', value: r[0] }),
-        crear('span', null, [crear('b', { texto: r[0] }), r[1]])
-      ]));
+        crear('input', { type: 'radio', name: 'regla', value: r[0] }), crear('span', null, [crear('b', { texto: r[0] }), r[1]])]));
     });
-    var cuerpo = $('form-editor');
-    $('editor-simbolos').appendChild(C.barraSimbolos(cuerpo));
-    C.recordarFoco(cuerpo);
-  })();
+    var form = d.querySelector('#form-editor');
+    d.querySelector('#editor-simbolos').appendChild(C.barraSimbolos(form));
+    C.recordarFoco(form);
+    window.Iconos.pintar(d);
 
-  function reglaElegida() {
-    var x = document.querySelector('#editor-reglas input:checked');
-    return x ? x.value : '';
+    form.addEventListener('submit', function (e) {
+      var accion = e.submitter ? e.submitter.value : 'cancelar';
+      if (accion === 'guardar') {
+        var x = grid.querySelector('input:checked');
+        var regla = x ? x.value : '';
+        var correccion = d.querySelector('#editor-correccion').value.trim();
+        if (!regla || !correccion) {
+          e.preventDefault();
+          var err = d.querySelector('#error-editor');
+          err.querySelector('p').textContent = 'Elija la regla y escriba la versión corregida. Si duda de la regla, elija la más cercana.';
+          err.hidden = false; err.classList.remove('sacudir'); void err.offsetWidth; err.classList.add('sacudir');
+          return;
+        }
+        var nuevo = !respA()[editorCampo];
+        respA()[editorCampo] = { regla: regla, correccion: correccion };
+        C.toast(nuevo ? 'Error marcado: ' + VALORES[editorCampo] : 'Cambios guardados', 'exito', nuevo ? 'buscar' : 'check');
+      } else if (accion === 'quitar') {
+        delete respA()[editorCampo];
+        C.toast('Marca quitada', 'info', 'papelera');
+      } else {
+        return;
+      }
+      refrescarA();
+    });
+    d.addEventListener('close', function () {
+      var b = document.querySelector('[data-campo="' + editorCampo + '"]');
+      if (b) b.focus({ preventScroll: true });
+    });
   }
 
   function abrirEditor(id) {
     editorCampo = id;
-    var r = estado.respuestas.A[id];
-    $('editor-titulo').textContent = ETIQUETAS[id];
-    $('editor-original').textContent = VALORES[id];
-    document.querySelectorAll('#editor-reglas input').forEach(function (x) { x.checked = !!r && x.value === r.regla; });
-    $('editor-correccion').value = r ? r.correccion : '';
-    $('editor-quitar').hidden = !r;
-    $('editor-guardar').querySelector('span').textContent = r ? 'Guardar cambios' : 'Marcar como error';
-    $('error-editor').hidden = true;
-    $('editor').showModal();
-    var elegido = document.querySelector('#editor-reglas input:checked') || document.querySelector('#editor-reglas input');
-    elegido.focus();
+    var r = respA()[id];
+    var d = document.getElementById('editor');
+    d.querySelector('#editor-titulo').textContent = ETIQUETAS[id];
+    d.querySelector('#editor-original').textContent = VALORES[id];
+    d.querySelectorAll('#editor-reglas input').forEach(function (x) { x.checked = !!r && x.value === r.regla; });
+    d.querySelector('#editor-correccion').value = r ? r.correccion : '';
+    d.querySelector('#editor-quitar').hidden = !r;
+    d.querySelector('#editor-guardar span').textContent = r ? 'Guardar cambios' : 'Marcar como error';
+    d.querySelector('#error-editor').hidden = true;
+    d.showModal();
+    (d.querySelector('#editor-reglas input:checked') || d.querySelector('#editor-reglas input')).focus();
   }
-
-  $('form-editor').addEventListener('submit', function (e) {
-    var accion = e.submitter ? e.submitter.value : 'cancelar';
-    if (accion === 'guardar') {
-      var regla = reglaElegida();
-      var correccion = $('editor-correccion').value.trim();
-      if (!regla || !correccion) {
-        e.preventDefault();
-        errorEn('error-editor', 'Elija la regla y escriba la versión corregida. Si duda de la regla, elija la más cercana.');
-        return;
-      }
-      var nuevo = !estado.respuestas.A[editorCampo];
-      estado.respuestas.A[editorCampo] = { regla: regla, correccion: correccion };
-      C.toast(nuevo ? 'Error marcado: ' + VALORES[editorCampo] : 'Cambios guardados', 'exito', nuevo ? 'buscar' : 'check');
-    } else if (accion === 'quitar') {
-      delete estado.respuestas.A[editorCampo];
-      C.toast('Marca quitada', 'info', 'papelera');
-    } else {
-      return;
-    }
-    refrescarA();
-  });
-
-  $('editor').addEventListener('close', function () {
-    var b = document.querySelector('[data-campo="' + editorCampo + '"]');
-    if (b) b.focus({ preventScroll: true });
-  });
-
-  // --- Partes B y C ----------------------------------------------------------------
-
-  function dato(texto) { return crear('span', { clase: 'dato', texto: texto }); }
-
-  function respuesta(parte, item, etiqueta, unidad, ancha) {
-    var id = 'resp-' + item;
-    var valor = estado.respuestas[parte][item] || '';
-    var input = crear('input', { type: 'text', id: id, 'data-parte': parte, 'data-item': item, autocomplete: 'off',
-      spellcheck: 'false', maxlength: ancha ? '60' : '30', inputmode: ancha ? 'text' : 'decimal',
-      placeholder: ancha ? 'Ej.: (12,3 ± 0,4) mg/L' : 'Use coma decimal' });
-    input.value = valor;
-    var grupo = crear('span', { clase: 'grupo-entrada' }, [input]);
-    if (unidad) grupo.appendChild(crear('span', { clase: 'unidad', texto: unidad }));
-    return crear('div', { clase: 'respuesta' + (ancha ? ' ancha' : '') }, [
-      crear('label', { for: id, texto: etiqueta }), grupo,
-      crear('span', { clase: 'estado-campo' + (valor.trim() ? ' lleno' : ''), id: 'ok-' + item, 'aria-hidden': 'true' }, [C.icono('check')])
-    ]);
-  }
-
-  function ejercicio(icono, titulo, pts, enunciado, filas, i) {
-    return crear('div', { clase: 'tarjeta ejercicio aparecer', style: '--i:' + i }, [
-      crear('div', { clase: 'ejercicio-cab' }, [
-        crear('span', { clase: 'ico-tile chico' }, [C.icono(icono)]),
-        crear('h3', { texto: titulo }),
-        crear('span', { clase: 'pts', texto: pts + ' pts' })
-      ]),
-      crear('p', { clase: 'enunciado' }, enunciado)
-    ].concat(filas));
-  }
-
-  function encabezado(icono, titulo, texto) {
-    return crear('div', { clase: 'tarjeta aparecer' }, [
-      crear('div', { clase: 'tarjeta-cab' }, [crear('span', { clase: 'ico-tile' }, [C.icono(icono)]),
-        crear('div', null, [crear('h2', { texto: titulo }), crear('span', { clase: 'suave peq', texto: texto })]),
-        crear('span', { clase: 'pts', texto: '20 pts' })])
-    ]);
-  }
-
-  function pintarEjercicios() {
-    var v = estado.variante;
-    var cb = $('ejercicios-B');
-    cb.textContent = '';
-    cb.appendChild(encabezado('redondeo', 'Parte B · Redondeo', 'Escriba solo el número, con coma decimal. Sus valores son únicos.'));
-    cb.appendChild(ejercicio('regla', 'B1 · Intervalo de redondeo', 4, [
-      'Redondee ', dato(v.B1.valor), ' con un intervalo de redondeo de ', dato(v.B1.intervalo), '.'
-    ], [respuesta('B', 'B1', 'Valor redondeado', '')], 1));
-    cb.appendChild(ejercicio('diana', 'B2 · Empate', 4, [
-      'Redondee ', dato(v.B2.valor), ' con un intervalo de ', dato(v.B2.intervalo), '. Aplique la regla preferente de ISO 80000-1 para los empates.'
-    ], [respuesta('B', 'B2', 'Valor redondeado', '')], 2));
-    cb.appendChild(ejercicio('rayo', 'B3 · ¿Una o dos etapas?', 4, [
-      'Un analista redondeó ', dato(v.B3.valor), ' primero a 0,01 y después a 0,1, y reportó ', dato(v.B3.dosEtapas),
-      '. ¿Cuál es el valor correcto redondeado a 0,1?'
-    ], [respuesta('B', 'B3', 'Valor correcto', '')], 3));
-    cb.appendChild(ejercicio('destellos', 'B4 · Resultado con incertidumbre (GUM 7.2.6)', 8, [
-      'Para la ', v.B4.magnitud, ', la hoja de cálculo arroja y = ', dato(v.B4.y + ' ' + v.B4.unidad), ' y U = ',
-      dato(v.B4.U + ' ' + v.B4.unidad), ' (k = 2).'
-    ], [
-      respuesta('B', 'B4U', 'a) U con dos cifras significativas', v.B4.unidad),
-      respuesta('B', 'B4y', 'b) y redondeado a la misma posición decimal que U', v.B4.unidad),
-      respuesta('B', 'B4expr', 'c) Resultado como se escribiría en el informe', '', true),
-      C.barraSimbolos(cb)
-    ], 4));
-    C.recordarFoco(cb);
-
-    var cc = $('ejercicios-C');
-    cc.textContent = '';
-    cc.appendChild(encabezado('convertir', 'Parte C · Conversión de unidades', 'Use los factores de la NIST SP 811 del material de apoyo y redondee solo el resultado final.'));
-    cc.appendChild(ejercicio('manometro', 'C1 · Presión del autoclave', 7, [
-      'El manómetro del autoclave indica ', dato(v.C1.p + ' psi'), ' con una incertidumbre expandida U = ', dato(v.C1.U + ' psi'),
-      ' (k = 2). Exprese ambos en kilopascales: U con dos cifras significativas y el valor redondeado a la misma posición decimal.'
-    ], [respuesta('C', 'C1valor', 'a) Valor', 'kPa'), respuesta('C', 'C1U', 'b) U', 'kPa')], 1));
-    cc.appendChild(ejercicio('termometro', 'C2 · Termómetro de la incubadora', 8, [
-      'Un termómetro de incubadora calibrado en grados Fahrenheit indica ', dato(v.C2.t + ' °F'), ' con U = ', dato(v.C2.U + ' °F'),
-      ' (k = 2). Exprese ambos en grados Celsius: U con dos cifras significativas y la temperatura redondeada a la misma posición decimal.'
-    ], [respuesta('C', 'C2valor', 'a) Temperatura', '°C'), respuesta('C', 'C2U', 'b) U', '°C')], 2));
-    cc.appendChild(ejercicio('vaso', 'C3 · Bidón de reactivo', 5, [
-      'Un bidón de reactivo importado indica una capacidad de ', dato(v.C3.v + ' gal'),
-      ' (galones de EE. UU.). Exprese la capacidad en litros, redondeada a 0,01 L.'
-    ], [respuesta('C', 'C3', 'Capacidad', 'L')], 3));
-  }
-
-  document.addEventListener('input', function (e) {
-    var t = e.target;
-    if (!estado) return;
-    if (t.dataset && t.dataset.item) {
-      estado.respuestas[t.dataset.parte][t.dataset.item] = t.value;
-      $('ok-' + t.dataset.item).classList.toggle('lleno', !!t.value.trim());
-      actualizarAvance();
-      guardarBorrador();
-    } else if (t.id === 'reflexion') {
-      estado.respuestas.D.reflexion = t.value;
-      actualizarReflexion();
-      actualizarAvance();
-      guardarBorrador();
-    }
-  });
-
-  function actualizarReflexion() {
-    var n = $('reflexion').value.length;
-    $('contador-reflexion').textContent = n;
-    $('medidor-reflexion').style.width = Math.min(100, n / 4) + '%';
-  }
-
-  // --- Avance -------------------------------------------------------------------------
-
-  function llenos(parte, items) {
-    return items.filter(function (i) { return String(estado.respuestas[parte][i] || '').trim(); }).length;
-  }
-
-  function avance() {
-    var nA = marcados().length, nB = llenos('B', ITEMS_B), nC = llenos('C', ITEMS_C);
-    var nD = (estado.respuestas.D.reflexion || '').trim().length;
-    var f = { A: Math.min(nA, 15) / 15, B: nB / ITEMS_B.length, C: nC / ITEMS_C.length, D: Math.min(1, nD / 150) };
-    return { nA: nA, nB: nB, nC: nC, nD: nD, f: f, total: (f.A * 45 + f.B * 20 + f.C * 20 + f.D * 15) / 100 };
-  }
-
-  function actualizarAvance() {
-    var a = avance();
-    $('sub-A').textContent = a.nA + (a.nA === 1 ? ' marcado' : ' marcados');
-    $('sub-B').textContent = a.nB + ' de ' + ITEMS_B.length;
-    $('sub-C').textContent = a.nC + ' de ' + ITEMS_C.length;
-    $('sub-D').textContent = a.nD + ' caracteres';
-    $('sub-R').textContent = Math.round(a.total * 100) + ' % de avance';
-    ['A', 'B', 'C', 'D'].forEach(function (p) { $('barra-' + p).style.width = Math.round(a.f[p] * 100) + '%'; });
-    $('barra-R').style.width = Math.round(a.total * 100) + '%';
-    $('progreso-global').querySelector('i').style.width = Math.round(a.total * 100) + '%';
-  }
-
-  // --- Revisión y envío ------------------------------------------------------------
-
-  function pintarRevision() {
-    var a = avance();
-    var pct = Math.round(a.total * 100);
-    $('arco-avance').style.strokeDashoffset = String(CIRCUNFERENCIA * (1 - a.total));
-    C.contar($('porcentaje-avance'), pct, 0, ' %');
-    var lista = $('lista-revision');
-    lista.textContent = '';
-    [
-      [a.nA >= 10, 'buscar', 'Parte A: ' + a.nA + (a.nA === 1 ? ' valor marcado' : ' valores marcados'),
-        'El informe tiene alrededor de 15 errores. Marcar un valor correcto resta 1 punto.'],
-      [a.nB === ITEMS_B.length, 'redondeo', 'Parte B: ' + a.nB + ' de ' + ITEMS_B.length + ' respuestas', a.nB < ITEMS_B.length ? 'Hay respuestas vacías.' : 'Completa.'],
-      [a.nC === ITEMS_C.length, 'convertir', 'Parte C: ' + a.nC + ' de ' + ITEMS_C.length + ' respuestas', a.nC < ITEMS_C.length ? 'Hay respuestas vacías.' : 'Completa.'],
-      [a.nD >= 150, 'mensaje', 'Parte D: ' + a.nD + ' caracteres', a.nD < 150 ? 'Desarrolle un poco más su reflexión (al menos 150 caracteres).' : 'Completa.']
-    ].forEach(function (x, i) {
-      lista.appendChild(crear('li', { clase: x[0] ? 'bien' : 'falta', style: '--i:' + i }, [
-        crear('span', { clase: 'estado-icono' }, [C.icono(x[0] ? 'check' : 'alerta')]),
-        crear('div', null, [crear('b', { texto: x[2] }), crear('small', { texto: x[3] })])
-      ]));
-    });
-    $('boton-enviar').disabled = !$('declaracion').checked;
-  }
-
-  $('declaracion').addEventListener('change', function () { $('boton-enviar').disabled = !this.checked; });
-
-  $('boton-enviar').addEventListener('click', function () {
-    var faltan = (ITEMS_B.length - llenos('B', ITEMS_B)) + (ITEMS_C.length - llenos('C', ITEMS_C));
-    $('confirmar-texto').textContent = (faltan ? 'Tiene ' + faltan + ' respuestas vacías en las partes B y C. ' : '') +
-      'Solo se acepta un envío por correo y después no podrá modificar sus respuestas.';
-    $('confirmar-envio').showModal();
-  });
-
-  $('confirmar-envio').addEventListener('close', function () {
-    if (this.returnValue === 'si') enviar();
-  });
-
-  async function enviar() {
-    var boton = $('boton-enviar');
-    ocupado(boton, true);
-    $('error-envio').hidden = true;
-    var r = await C.llamar({
-      accion: 'enviar', practica: PRACTICA, nombre: estado.nombre, correo: estado.correo, autorizaDatos: true,
-      idCliente: estado.idCliente, inicioCliente: estado.inicio, respuestas: estado.respuestas
-    }, simular);
-    ocupado(boton, false);
-    boton.disabled = !$('declaracion').checked;
-    if (!r.ok) {
-      errorEn('error-envio', r.mensaje || 'No fue posible enviar la práctica.');
-      C.toast('No se pudo enviar', 'error');
-      return;
-    }
-    clearInterval(reloj);
-    C.almacen.guardar(CLAVE_ENVIO, { nombre: estado.nombre, correo: estado.correo, codigo: r.codigo, fecha: new Date().toISOString() });
-    C.almacen.borrar(CLAVE_BORRADOR);
-    $('codigo-enviado').textContent = r.codigo;
-    var cont = $('resultado-envio');
-    cont.textContent = '';
-    if (r.resultado) cont.appendChild(vistaResultado(r.resultado));
-    estado = null;
-    mostrar('enviado');
-    C.confeti();
-  }
-
-  $('copiar-codigo').addEventListener('click', function () {
-    var codigo = $('codigo-enviado').textContent;
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(codigo).then(function () { C.toast('Código copiado', 'exito', 'copiar'); },
-        function () { C.toast('Copie el código manualmente', 'aviso'); });
-    }
-  });
 
   // ---------------------------------------------------------------------------
-  // Consulta de resultados
+  // Definición de la práctica
   // ---------------------------------------------------------------------------
 
-  function prepararConsulta() {
-    var envio = C.almacen.leer(CLAVE_ENVIO);
-    if (envio) {
-      if (!$('consulta-correo').value) $('consulta-correo').value = envio.correo;
-      if (!$('consulta-codigo').value) $('consulta-codigo').value = envio.codigo;
-    }
-    $('resultado-consulta').textContent = '';
-    $('error-consulta').hidden = true;
-  }
+  ctx = window.Motor.iniciar({
+    id: 'P1',
+    titulo: 'Cazadores de errores del SI',
+    icono: 'buscar',
+    etiqueta: 'Sesión 1 · Práctica 1',
+    descripcion: 'Detecte y corrija errores de escritura, redondeo y conversión de unidades en un informe de resultados del laboratorio del caso conductor: plomo en agua para consumo humano.',
+    meta: [['usuario', 'Trabajo individual'], ['medalla', '100 puntos · nota de 0,0 a 5,0'], ['libro', 'Folleto SI · ISO 80000-1 · NIST SP 811 · GUM']],
+    notaRegistro: 'Sus valores de redondeo y conversión se calculan a partir de su correo.',
+    comoFunciona: [
+      'Revise el informe y haga clic en cada valor que esté mal escrito. Elija la regla que incumple y escriba la corrección.',
+      'Resuelva los ejercicios de redondeo y conversión con sus propios valores.',
+      'Escriba su reflexión sobre el error más riesgoso.',
+      'Revise su avance y envíe. Guarde el código de consulta que recibirá.'
+    ],
+    pie: 'Informe ficticio con fines didácticos',
+    partes: [
+      { id: 'A', titulo: 'Informe', nombre: 'A · Informe con errores', icono: 'buscar', tono: 'ambar', pts: 45,
+        resumen: 'Marque los valores mal escritos, cite la regla incumplida y escriba la corrección.' },
+      { id: 'B', titulo: 'Redondeo', nombre: 'B · Redondeo', icono: 'redondeo', tono: 'violeta', pts: 20,
+        resumen: 'Intervalos de redondeo, empates y cifras según la incertidumbre.' },
+      { id: 'C', titulo: 'Conversión', nombre: 'C · Conversión', icono: 'convertir', tono: 'cielo', pts: 20,
+        resumen: 'Unidades no SI con los factores de la NIST SP 811.' },
+      { id: 'D', titulo: 'Reflexión', nombre: 'D · Reflexión', icono: 'mensaje', tono: 'rosa', pts: 15, docente: true,
+        resumen: 'El error más riesgoso ante un cliente o un evaluador.' }
+    ],
+    varianteDemo: {
+      B1: { valor: '7,2412', intervalo: '0,01' }, B2: { valor: '4,505', intervalo: '0,01' }, B3: { valor: '71,548', dosEtapas: '71,6' },
+      B4: { magnitud: 'concentración másica de nitratos (NO₃⁻) en agua', unidad: 'mg/L', y: '21,018 78', U: '0,5708' },
+      C1: { p: '15,3', U: '0,5' }, C2: { t: '115,0', U: '0,6' }, C3: { v: '6,0' }
+    },
+    respuestasVacias: function () { return { A: {}, B: {}, C: {}, D: { reflexion: '' } }; },
 
-  $('form-consulta').addEventListener('submit', async function (e) {
-    e.preventDefault();
-    var correo = $('consulta-correo').value.trim().toLowerCase();
-    var codigo = $('consulta-codigo').value.trim().toUpperCase();
-    if (!PATRON_CORREO.test(correo) || codigo.length !== 6) {
-      return errorEn('error-consulta', 'Escriba su correo y el código de 6 caracteres que recibió al enviar.');
-    }
-    $('error-consulta').hidden = true;
-    var boton = $('boton-consultar');
-    ocupado(boton, true);
-    var r = await C.llamar({ accion: 'consultar', practica: PRACTICA, correo: correo, codigo: codigo }, simular);
-    ocupado(boton, false);
-    var cont = $('resultado-consulta');
-    cont.textContent = '';
-    if (!r.ok) return errorEn('error-consulta', r.mensaje || 'No fue posible consultar.');
-    cont.appendChild(vistaResultado(r.resultado, r.nombre));
-    cont.scrollIntoView({ behavior: C.sinMovimiento ? 'auto' : 'smooth', block: 'start' });
-  });
-
-  function numero(n, dec) {
-    return Number(n).toLocaleString('es-CO', { minimumFractionDigits: dec || 0, maximumFractionDigits: dec === undefined ? 1 : dec });
-  }
-
-  var PARTES = {
-    A: { nombre: 'A · Informe con errores', icono: 'buscar', tono: 'ambar' },
-    B: { nombre: 'B · Redondeo', icono: 'redondeo', tono: 'violeta' },
-    C: { nombre: 'C · Conversión', icono: 'convertir', tono: 'cielo' },
-    D: { nombre: 'D · Reflexión', icono: 'mensaje', tono: 'rosa' }
-  };
-
-  function vistaResultado(res, nombre) {
-    var t = crear('div', { clase: 'tarjeta aparecer', style: 'margin-top:18px' });
-    var anillo = crear('div', { clase: 'anillo' });
-    anillo.innerHTML = '<svg viewBox="0 0 200 200"><circle class="pista" cx="100" cy="100" r="86"/>' +
-      '<circle class="arco" cx="100" cy="100" r="86" stroke-dasharray="' + CIRCUNFERENCIA + '" stroke-dashoffset="' + CIRCUNFERENCIA + '"/></svg>';
-    var centroNota = crear('b', { texto: '0,0' });
-    anillo.appendChild(crear('div', { clase: 'centro' }, [crear('div', null, [centroNota, crear('span', { texto: 'de 5,0' })])]));
-
-    var barras = crear('div', { clase: 'barras' });
-    ['A', 'B', 'C', 'D'].forEach(function (p) {
-      var pend = p === 'D' && res.dPendiente;
-      var relleno = crear('i');
-      barras.appendChild(crear('div', { clase: 'barra-parte', 'data-tono': PARTES[p].tono }, [
-        crear('div', { clase: 'fila' }, [
-          crear('span', null, [C.icono(PARTES[p].icono), PARTES[p].nombre]),
-          crear('span', { clase: 'num', texto: pend ? 'pendiente' : numero(res.partes[p]) + ' / ' + numero(res.maximos[p]) })
-        ]),
-        crear('div', { clase: 'pista' }, [relleno])
-      ]));
-      relleno.dataset.ancho = pend || !res.maximos[p] ? 0 : Math.max(0, res.partes[p]) / res.maximos[p] * 100;
-    });
-
-    t.appendChild(crear('div', { clase: 'resultado-cab' }, [anillo, crear('div', null, [
-      nombre ? crear('p', { clase: 'suave', style: 'margin-bottom:4px', texto: nombre }) : null,
-      crear('h2', { texto: numero(res.total) + ' de 100 puntos' }),
-      res.dPendiente ? crear('p', { clase: 'suave peq', texto: 'La parte D aún no ha sido calificada por el docente.' }) : null,
-      barras
-    ])]));
-
-    requestAnimationFrame(function () {
-      requestAnimationFrame(function () {
-        anillo.querySelector('.arco').style.strokeDashoffset = String(CIRCUNFERENCIA * (1 - res.nota / 5));
-        barras.querySelectorAll('.pista i').forEach(function (i) { i.style.width = i.dataset.ancho + '%'; });
-        C.contar(centroNota, res.nota, 1);
-      });
-    });
-
-    if (res.detalle) {
-      ['A', 'B', 'C'].forEach(function (p, k) {
-        var items = res.detalle.filter(function (d) { return d.parte === p; });
-        var det = crear('details', { clase: 'acordeon', 'data-tono': PARTES[p].tono });
-        if (k === 0) det.open = true;
-        det.appendChild(crear('summary', null, [
-          crear('span', { clase: 'ico-tile chico' }, [C.icono(PARTES[p].icono)]), PARTES[p].nombre,
-          C.icono('abajo', 'flecha-acordeon')
-        ]));
-        var cont = crear('div', { clase: 'items' });
-        items.forEach(function (d) {
-          var clase = d.max > 0 ? (d.pts >= d.max ? 'bien' : (d.pts > 0 ? 'parcial' : 'mal')) : (d.pts >= 0 ? 'bien' : 'mal');
-          cont.appendChild(crear('div', { clase: 'item-res ' + clase }, [
-            crear('span', { clase: 'marca-res' }, [C.icono(clase === 'bien' ? 'check' : (clase === 'parcial' ? 'alerta' : 'x'))]),
-            crear('div', { style: 'min-width:0' }, [
-              crear('div', { clase: 'desc', texto: d.descripcion }),
-              crear('div', { clase: 'comp' }, [
-                crear('span', { texto: d.resultado }),
-                crear('span', { texto: 'Su respuesta: ' + d.respuesta }),
-                crear('span', { texto: 'Esperada: ' + d.esperada })
-              ]),
-              d.explicacion ? crear('div', { clase: 'expl', texto: d.explicacion }) : null
-            ]),
-            crear('span', { clase: 'ptsitem', texto: numero(d.pts) + '/' + numero(d.max) })
-          ]));
+    pintar: {
+      A: function (panel, h) {
+        ctx = h;
+        crearEditor();
+        informe = crear('article', { clase: 'tarjeta documento', 'aria-label': 'Informe de resultados con errores' });
+        listaErrores = crear('ul', { clase: 'lista-errores' });
+        nErrores = crear('b', { texto: '0' });
+        panel.appendChild(crear('div', { clase: 'rejilla-a' }, [informe, crear('aside', { clase: 'lateral' }, [
+          crear('div', { clase: 'tarjeta', 'data-tono': 'ambar' }, [
+            crear('div', { clase: 'tarjeta-cab' }, [crear('span', { clase: 'ico-tile chico' }, [C.icono('lista')]), crear('h3', { texto: 'Tabla de errores' }),
+              crear('span', { clase: 'contador-errores', style: 'margin-left:auto', 'data-tip': 'Valores que ha marcado como error' }, [nErrores, crear('span', { clase: 'suave peq', texto: 'marcados' })])]),
+            crear('p', { clase: 'suave peq', html: 'El informe tiene <b>alrededor de 15 errores</b>. Cada uno vale 3 puntos (detección, regla y corrección); marcar un valor correcto resta 1 punto.' }),
+            listaErrores
+          ])
+        ])]));
+        informe.addEventListener('click', function (e) {
+          var b = e.target.closest('[data-campo]');
+          if (b) abrirEditor(b.getAttribute('data-campo'));
         });
-        det.appendChild(cont);
-        t.appendChild(det);
+        panelA = panel;
+        pintarInforme();
+        pintarListaErrores();
+      },
+      B: function (panel, h) {
+        var v = h.estado.variante, dato = h.dato, r = h.respuesta;
+        var cont = crear('div', { clase: 'ejercicios', 'data-tono': 'violeta' });
+        cont.appendChild(h.encabezado('B', 'Escriba solo el número, con coma decimal. Sus valores son únicos.'));
+        cont.appendChild(h.ejercicio('regla', 'B1 · Intervalo de redondeo', 4, ['Redondee ', dato(v.B1.valor), ' con un intervalo de redondeo de ', dato(v.B1.intervalo), '.'],
+          [r('B', 'B1', 'Valor redondeado', '')], 1));
+        cont.appendChild(h.ejercicio('diana', 'B2 · Empate', 4, ['Redondee ', dato(v.B2.valor), ' con un intervalo de ', dato(v.B2.intervalo),
+          '. Aplique la regla preferente de ISO 80000-1 para los empates.'], [r('B', 'B2', 'Valor redondeado', '')], 2));
+        cont.appendChild(h.ejercicio('rayo', 'B3 · ¿Una o dos etapas?', 4, ['Un analista redondeó ', dato(v.B3.valor), ' primero a 0,01 y después a 0,1, y reportó ',
+          dato(v.B3.dosEtapas), '. ¿Cuál es el valor correcto redondeado a 0,1?'], [r('B', 'B3', 'Valor correcto', '')], 3));
+        cont.appendChild(h.ejercicio('destellos', 'B4 · Resultado con incertidumbre (GUM 7.2.6)', 8, ['Para la ', v.B4.magnitud, ', la hoja de cálculo arroja y = ',
+          dato(v.B4.y + ' ' + v.B4.unidad), ' y U = ', dato(v.B4.U + ' ' + v.B4.unidad), ' (k = 2).'], [
+          r('B', 'B4U', 'a) U con dos cifras significativas', v.B4.unidad),
+          r('B', 'B4y', 'b) y redondeado a la misma posición decimal que U', v.B4.unidad),
+          r('B', 'B4expr', 'c) Resultado como se escribiría en el informe', '', { ancha: true, placeholder: 'Ej.: (12,3 ± 0,4) mg/L' }),
+          h.barraSimbolos(cont)
+        ], 4));
+        h.recordarFoco(cont);
+        panel.appendChild(cont);
+      },
+      C: function (panel, h) {
+        var v = h.estado.variante, dato = h.dato, r = h.respuesta;
+        var cont = crear('div', { clase: 'ejercicios', 'data-tono': 'cielo' });
+        cont.appendChild(h.encabezado('C', 'Use los factores de la NIST SP 811 del material de apoyo y redondee solo el resultado final.'));
+        cont.appendChild(h.ejercicio('manometro', 'C1 · Presión del autoclave', 7, ['El manómetro del autoclave indica ', dato(v.C1.p + ' psi'),
+          ' con una incertidumbre expandida U = ', dato(v.C1.U + ' psi'),
+          ' (k = 2). Exprese ambos en kilopascales: U con dos cifras significativas y el valor redondeado a la misma posición decimal.'],
+          [r('C', 'C1valor', 'a) Valor', 'kPa'), r('C', 'C1U', 'b) U', 'kPa')], 1));
+        cont.appendChild(h.ejercicio('termometro', 'C2 · Termómetro de la incubadora', 8, ['Un termómetro de incubadora calibrado en grados Fahrenheit indica ',
+          dato(v.C2.t + ' °F'), ' con U = ', dato(v.C2.U + ' °F'),
+          ' (k = 2). Exprese ambos en grados Celsius: U con dos cifras significativas y la temperatura redondeada a la misma posición decimal.'],
+          [r('C', 'C2valor', 'a) Temperatura', '°C'), r('C', 'C2U', 'b) U', '°C')], 2));
+        cont.appendChild(h.ejercicio('vaso', 'C3 · Bidón de reactivo', 5, ['Un bidón de reactivo importado indica una capacidad de ', dato(v.C3.v + ' gal'),
+          ' (galones de EE. UU.). Exprese la capacidad en litros, redondeada a 0,01 L.'], [r('C', 'C3', 'Capacidad', 'L')], 3));
+        panel.appendChild(cont);
+      },
+      D: function (panel, h) {
+        panel.appendChild(crear('div', { clase: 'tarjeta', 'data-tono': 'rosa' }, [
+          crear('div', { clase: 'tarjeta-cab' }, [crear('span', { clase: 'ico-tile' }, [C.icono('mensaje')]),
+            crear('div', null, [crear('h2', { texto: 'Parte D · Reflexión' }), crear('span', { clase: 'suave peq', texto: 'La califica el docente' })]),
+            crear('span', { clase: 'pts', texto: '15 pts' })]),
+          h.texto('D', 'reflexion', 'Elija uno de los errores que encontró en el informe. ¿Qué impacto tendría ante el cliente o en una evaluación de ONAC, y por qué lo considera el más riesgoso?',
+            { placeholder: 'Escriba su análisis en 5 a 10 líneas…' })
+        ]));
+      }
+    },
+
+    avance: function (r, h) {
+      var nA = ORDEN_A.filter(function (id) { return r.A[id]; }).length;
+      var nB = h.llenos('B', ITEMS_B), nC = h.llenos('C', ITEMS_C);
+      var nD = (r.D.reflexion || '').trim().length;
+      var faltan = (ITEMS_B.length - nB) + (ITEMS_C.length - nC);
+      return {
+        fraccion: { A: Math.min(nA, 15) / 15, B: nB / ITEMS_B.length, C: nC / ITEMS_C.length, D: Math.min(1, nD / 150) },
+        sub: { A: nA + (nA === 1 ? ' marcado' : ' marcados'), B: nB + ' de ' + ITEMS_B.length, C: nC + ' de ' + ITEMS_C.length, D: nD + ' caracteres' },
+        revision: [
+          [nA >= 10, 'buscar', 'Parte A: ' + nA + (nA === 1 ? ' valor marcado' : ' valores marcados'), 'El informe tiene alrededor de 15 errores. Marcar un valor correcto resta 1 punto.'],
+          [nB === ITEMS_B.length, 'redondeo', 'Parte B: ' + nB + ' de ' + ITEMS_B.length + ' respuestas', nB < ITEMS_B.length ? 'Hay respuestas vacías.' : 'Completa.'],
+          [nC === ITEMS_C.length, 'convertir', 'Parte C: ' + nC + ' de ' + ITEMS_C.length + ' respuestas', nC < ITEMS_C.length ? 'Hay respuestas vacías.' : 'Completa.'],
+          [nD >= 150, 'mensaje', 'Parte D: ' + nD + ' caracteres', nD < 150 ? 'Desarrolle un poco más su reflexión (al menos 150 caracteres).' : 'Completa.']
+        ],
+        faltan: faltan ? 'Tiene ' + faltan + ' respuestas vacías en las partes B y C.' : ''
+      };
+    },
+
+    apoyo: function (cont) {
+      var reglas = crear('div', { clase: 'reglas-apoyo' });
+      REGLAS.forEach(function (r) {
+        reglas.appendChild(crear('div', null, [crear('b', { texto: r[0] }), crear('span', null, [r[1], crear('small', { texto: 'Ej. incorrecto: ' + r[2] })])]));
       });
+      cont.appendChild(crear('h3', null, [C.icono('regla'), 'Reglas de escritura']));
+      cont.appendChild(reglas);
+      cont.appendChild(crear('h3', null, [C.icono('redondeo'), 'Redondeo']));
+      cont.appendChild(crear('div', { clase: 'tips-redondeo', html:
+        '<div><b>Intervalo de redondeo.</b> Se reemplaza el número por el múltiplo entero más cercano del intervalo (ISO 80000-1, anexo B).</div>' +
+        '<div><b>Empates.</b> Regla A (preferente): se elige el número par. Regla B: el de mayor magnitud.</div>' +
+        '<div><b>Una sola etapa.</b> Se redondea directamente desde el valor original, nunca por pasos.</div>' +
+        '<div><b>Con incertidumbre.</b> U con dos cifras significativas; el resultado a la misma posición decimal (GUM 7.2.6).</div>' }));
+      cont.appendChild(crear('h3', null, [C.icono('convertir'), 'Factores de conversión (NIST SP 811)']));
+      cont.appendChild(crear('table', { clase: 'tabla-mini', html:
+        '<tr><td>1 in</td><td>25,4 mm (exacto)</td></tr><tr><td>1 lb</td><td>0,453 592 37 kg (exacto)</td></tr>' +
+        '<tr><td>1 psi</td><td>6,894 757 kPa</td></tr><tr><td>1 bar</td><td>100 kPa (exacto)</td></tr>' +
+        '<tr><td>1 mmHg</td><td>133,322 4 Pa</td></tr><tr><td>1 cal (termoquímica)</td><td>4,184 J (exacto)</td></tr>' +
+        '<tr><td>1 gal (EE. UU.)</td><td>3,785 412 L</td></tr><tr><td>t/°F → t/°C</td><td>(t/°F − 32)/1,8</td></tr>' }));
     }
-    return t;
-  }
-
-  // ---------------------------------------------------------------------------
-  // Arranque
-  // ---------------------------------------------------------------------------
-
-  (function apoyoReglas() {
-    var cont = $('apoyo-reglas');
-    REGLAS.forEach(function (r) {
-      cont.appendChild(crear('div', null, [crear('b', { texto: r[0] }),
-        crear('span', null, [r[1], crear('small', { texto: 'Ej. incorrecto: ' + r[2] })])]));
-    });
-  })();
-
-  C.conectarTema($('tema'));
-  if (C.modoDemo) $('aviso-demo').hidden = false;
-  prepararInicio();
-  verificarDisponibilidad();
-  if (location.hash === '#consultar') { prepararConsulta(); mostrar('consulta'); }
+  });
 })();

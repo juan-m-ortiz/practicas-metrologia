@@ -26,7 +26,7 @@
       resumen: 'Intervalos de calibración justificados con datos históricos.' },
     { id: 'P6', sesion: 2, tono: 'indigo', icono: 'actividad', ruta: 'p6/', titulo: 'Carta de control de una balanza',
       resumen: 'Comprobaciones intermedias y decisiones con cartas de control.' },
-    { id: 'P7', sesion: 2, tono: 'coral', icono: 'certificado', ruta: 'p7/', titulo: 'Revisión de un certificado de calibración real',
+    { id: 'P7', sesion: 2, tono: 'coral', icono: 'certificado', ruta: 'p7/', titulo: 'Revisión de un certificado de calibración',
       resumen: 'Lista de chequeo y decisión de confirmación metrológica.' }
   ];
 
